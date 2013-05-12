@@ -1,0 +1,4 @@
+ijitsuki
+========
+
+Aegisub moonscript macros
