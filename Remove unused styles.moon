@@ -14,11 +14,12 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
 
         count_used = (k,linenum) ->
             cnt = used[k]
+            linenum -= s2
             if cnt
                 cnt.n += 1
-                table.insert(cnt.lines, linenum - s2)
+                table.insert cnt.lines, linenum
             else
-                used[k] = n:1, lines:{}
+                used[k] = n:1, lines:{linenum}
 
         for i,line in ipairs subs
             if line.class=="style"
@@ -47,19 +48,28 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             style = subs[i].name
             with occurences = used[style]
                 if .n > 0
-                    logUsed = ("  %s: %d%s\n%s")\format style, .n, list_spans(.lines,"\t: %s",3), logUsed
+                    logUsed = ("  %s: %d%s\n%s")\format style, .n, list_spans(.lines,"\t@ %s",3), logUsed
                     nUsed += 1
                 else
                     logDel = ("  %s\t: DELETED\n%s")\format style, logDel
                     nDel += 1
                     subs.delete i
+            used[style] = nil
 
         --report
+
+        logUnknown = ""
+        nUnknown = 0
+        for style,u in pairs used
+          if u
+            logUnknown ..= ("  %s: %d%s\n")\format style, u.n, list_spans(u.lines,"\t@ %s",3)
+            nUnknown += 1
 
         aegisub.progress.set 100
         aegisub.log "USED: %d\n", nUsed
         aegisub.log "%s--------\n", logUsed if nUsed > 0
         aegisub.log "DELETED: %d\n%s", nDel, logDel
+        aegisub.log "--------\nORPHANED: %d\n%s", nUnknown, logUnknown if nUnknown > 0
         if nDel==0
             aegisub.cancel()
 
@@ -84,7 +94,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
 
             format_result = (s) -> string.format format, s\sub(3)
 
-            for n in *numberlist[1,]
+            for n in *numberlist
                 if n - L2 > 1
                     if not add_span!
                         return format_result s
