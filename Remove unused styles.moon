@@ -47,10 +47,10 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             style = subs[i].name
             with occurences = used[style]
                 if .n > 0
-                    logUsed = string.format "  %s: %d%s\n%s", style, .n, list_spans(.lines,"\t: %s",4), logUsed
+                    logUsed = ("  %s: %d%s\n%s")\format style, .n, list_spans(.lines,"\t: %s",3), logUsed
                     nUsed += 1
                 else
-                    logDel = string.format "  %s\t: DELETED\n%s", style, logDel
+                    logDel = ("  %s\t: DELETED\n%s")\format style, logDel
                     nDel += 1
                     subs.delete i
 
@@ -76,7 +76,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             add_span = ->
                 spans += 1
                 if maxspans == -1 or spans <= maxspans
-                    s ..= string.format ", %d%s", L1, (if L2>L1 then "-"..tostring(L2) else "")
+                    s ..= (", %d%s")\format L1, (if L2>L1 then "-"..tostring(L2) else "")
                     true
                 else
                     s ..= "..."

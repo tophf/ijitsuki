@@ -33,21 +33,21 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             s = line.text
 
             s = s\gsub "\\pos%((%s*%-?[%d%.]+%s*),(%s*%-?[%d%.]+%s*)%)",
-                (x,y) -> string.format "\\pos(%s,%s)", arraysum2str({x,y}, cfg.pos)
+                (x,y) -> ("\\pos(%s,%s)")\format arraysum2str({x,y}, cfg.pos)
 
             s = s\gsub "\\move%((%s*%-?[%d%.]+%s*),(%s*%-?[%d%.]+%s*),(%s*%-?[%d%.]+%s*),(%s*%-?[%d%.]+%s*)",
-                (x,y,x2,y2) -> string.format "\\move(%s,%s,%s,%s", arraysum2str({x,y,x2,y2}, cfg.move)
+                (x,y,x2,y2) -> ("\\move(%s,%s,%s,%s")\format arraysum2str({x,y,x2,y2}, cfg.move)
 
             s = s\gsub "\\org%((%s*%-?[%d%.]+%s*),(%s*%-?[%d%.]+%s*)%)",
-                (x,y) -> string.format "\\org(%s,%s)", arraysum2str({x,y}, cfg.org)
+                (x,y) -> ("\\org(%s,%s)")\format arraysum2str({x,y}, cfg.org)
 
             s = s\gsub "\\(i?clip)%((%s*%-?[%d%.]+%s*),(%s*%-?[%d%.]+%s*),(%s*%-?[%d%.]+%s*),(%s*%-?[%d%.]+%s*)%)",
-                (tag,x,y,x2,y2) -> string.format "\\%s(%s,%s,%s,%s)", tag, arraysum2str({x,y,x2,y2}, cfg.clip)
+                (tag,x,y,x2,y2) -> ("\\%s(%s,%s,%s,%s)")\format tag, arraysum2str({x,y,x2,y2}, cfg.clip)
 
             s = s\gsub "\\(i?clip%(%s*%d*%s*%,?)([mlbsc%s%d%-]+)%)",
-                (tag,numbers) -> string.format "\\%s%s)", tag,
+                (tag,numbers) -> ("\\%s%s)")\format tag,
                     numbers\gsub "(-?%d+)%s*(-?%d+)",
-                        (x,y) -> string.format "%d %d", float2str(x)+cfg.clip_x, float2str(y)+cfg.clip_y
+                        (x,y) -> ("%d %d")\format float2str(x)+cfg.clip_x, float2str(y)+cfg.clip_y
 
             line.text = s
             subs[i] = line
