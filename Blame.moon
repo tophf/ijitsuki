@@ -92,13 +92,14 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
                 break
 
     -- load user config if script hasn't one
-    userconfigname = aegisub.decode_path('?user/'..script_name..'.conf')
+    userconfig = '?user/'..script_name..'.conf'
+    userconfigpath = aegisub.decode_path('?user/'..script_name..'.conf')
     if not cfg
-        f = io.open userconfigname,'r'
+        f = io.open userconfigpath,'r'
         if f
             ok,_cfg = pcall cfgdeserialize, f\read('*all')
             if ok and _cfg.save
-                cfgsource = userconfigname
+                cfgsource = userconfig
                 cfg = _cfg
             f\close!
 
@@ -149,9 +150,9 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             subs.append {class:'info', section:'Script Info', key:script_name, value:cfgserialize(cfg)}
 
         when SAVE.user
-            f = io.open userconfigname,'w'
+            f = io.open userconfigpath,'w'
             if not f
-                aegisub.log 'Error writing '..userconfigname
+                aegisub.log 'Error writing '..userconfigpath
             else
                 f\write cfgserialize cfg,'\n'
                 f\close!
