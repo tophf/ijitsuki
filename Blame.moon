@@ -19,6 +19,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
         check_max_lines:true,         max_lines:2
         check_max_chars_per_sec:true, max_chars_per_sec:25
         selected_only: false
+        select_errors: true
         list_errors: true
         save: SAVE.script
     }
@@ -52,6 +53,13 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
                 .effect = msg
                 subs[i] = line
 
+            if log_only
+                aegisub.log '%d: %s\t%s%s\n',
+                    i - firstdialogueline,
+                    msg,
+                    textonly_withbreaks\sub(1,20),
+                    (if #textonly_withbreaks>20 then '...' else '') if msg != ''
+                aegisub.progress.set i/#subs*100
         msg != ''
 
     max = (a,b) -> if a>b then a else b
@@ -65,6 +73,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
     playresX = 384
     styles = {}
     cfglineindex = {}
+    firstdialogueline = 0
     local cfg, cfgsource
 
     for i,s in ipairs subs
@@ -79,6 +88,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             when 'style'
                 styles[s.name] = s
             when 'dialogue'
+                firstdialogueline = i
                 break
 
     -- load user config if script hasn't one
@@ -120,10 +130,11 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
         {'checkbox',  0,5,3,1, label:'Max characters per second', name:'check_max_chars_per_sec', value:cfg.check_max_chars_per_sec}
         {'intedit',   3,5,1,1, name:'max_chars_per_sec', value:cfg.max_chars_per_sec, min:1, max:100}
 
-        {'checkbox',  0,7,3,1, name:'selected_only', label:'Selected lines only', value:cfg.selected_only}
+        {'checkbox',  0,7,4,1, name:'select_errors', label:'Select bad lines', value:cfg.select_errors}
         {'checkbox',  0,8,4,1, name:'list_errors', label:'List errors in Effect field', value:cfg.list_errors}
         {'dropdown',  0,9,4,1, name:'save', items:SAVE.list, value:cfg.save}
         {'label',     0,10,4,2,label:'Config: '..cfgsource}
+        {'checkbox',  0,12,3,1, name:'selected_only', label:'Selected lines only', value:cfg.selected_only}
     }
     for c in *dlg do for k,v in pairs {class:c[1], x:c[2], y:c[3], width:c[4], height:c[5]} do c[k] = v --conform the dialog
 
@@ -150,7 +161,11 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             return
 
     -- process subs
+    log_only = not cfg.select_errors and not cfg.list_errors
     if cfg.selected_only
         [i for i in *sel when blameline i,subs[i],cfg]
     else
         [i for i,s in ipairs subs when blameline i,s,cfg]
+
+    aegisub.progress.set 100 if log_only
+    nil if not cfg.select_errors
