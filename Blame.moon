@@ -30,7 +30,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             return false if .class != 'dialogue' or .comment
 
             duration = (.end_time - .start_time)/1000
-            textonly_withbreaks = .text\gsub('{.*}','')\gsub('\\h',' ')
+            textonly_withbreaks = .text\gsub('{.-}','')\gsub('\\h',' ')
             textonly = textonly_withbreaks\gsub('\\N','')\gsub("[ ,.-!?&():;/<>|%%$+=_'\"]",'')
             length = textonly\len()
             cps = if duration==0 then 0 else length/duration
