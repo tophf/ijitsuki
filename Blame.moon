@@ -42,7 +42,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             if cfg.check_max_lines and style
                 screen_estate_x = playresX - max(.margin_r, style.margin_r) - max(.margin_l, style.margin_l)
                 lines = 0
-                for span in textonly_withbreaks\split '\\N'
+                for span in textonly_withbreaks\gsub('\\N','\n')\split '\n'
                     lines += ({aegisub.text_extents(style, span)})[1]/screen_estate_x
                     lines = math.floor(lines) + 1 if lines - math.floor(lines) > 0
                 msg ..= (' %dlines')\format lines if lines > cfg.max_lines
