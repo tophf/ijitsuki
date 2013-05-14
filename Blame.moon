@@ -38,7 +38,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
 
             msg   = (' short%gs')\format duration if cfg.check_min_duration and duration < cfg.min_duration
             msg ..= (' long%gs')\format  duration if cfg.check_max_duration and duration > cfg.max_duration
-            msg ..= (' %dcps')\format    cps      if cfg.check_max_chars_per_sec and cps > cfg.max_chars_per_sec
+            msg ..= (' %dcps')\format    cps      if cfg.check_max_chars_per_sec and math.floor(cps) > cfg.max_chars_per_sec
 
             if cfg.check_max_lines and style
                 screen_estate_x = playresX - max(.margin_r, style.margin_r) - max(.margin_l, style.margin_l)
