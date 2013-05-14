@@ -72,7 +72,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             {"floatedit", 1,3,1,1, name:"clip_x", value:0.00, hint:"Shift x coordinate of \clip"}
             {"floatedit", 2,3,1,1, name:"clip_y", value:0.00, hint:"Shift y coordinate of \clip"}
         }
-        for c in *dlg do for k,v in pairs {class:c[1], x:c[2], y:c[3], width:c[4], height:c[5]} do c[k] = v --conform the dialog
+        for c in *dlg do for i,k in ipairs {'class','x','y','width','height'} do c[k] = c[i] --conform the dialog
         dlg
 
     checkrunnable!

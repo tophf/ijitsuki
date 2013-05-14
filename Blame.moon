@@ -137,7 +137,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
         {'label',     0,10,4,2,label:'Config: '..cfgsource}
         {'checkbox',  0,12,3,1, name:'selected_only', label:'Selected lines only', value:cfg.selected_only}
     }
-    for c in *dlg do for k,v in pairs {class:c[1], x:c[2], y:c[3], width:c[4], height:c[5]} do c[k] = v --conform the dialog
+    for c in *dlg do for i,k in ipairs {'class','x','y','width','height'} do c[k] = c[i] --conform the dialog
 
     -- show dialog
     btn,cfg = aegisub.dialog.display(dlg, BTNS.list)
