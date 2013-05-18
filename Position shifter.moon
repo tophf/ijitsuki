@@ -1,4 +1,4 @@
-﻿export script_name = "Position shifter"
+export script_name = "Position shifter"
 export script_description = "Shifts positions in selected lines with \pos,\move,\org,\clip"
 
 require "re"
@@ -14,10 +14,10 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
         aegisub.cancel()
 
     execute = ->
-        btns = ok:"Shift", cancel:"Cancel"
-        btn, cfg = aegisub.dialog.display(makedialog!, btns)
+        btns = ok:"&Shift", cancel:"&Cancel"
+        btn, cfg = aegisub.dialog.display(makedialog!,{btns.ok,btns.cancel},1,2)
 
-        aegisub.cancel() if btn != btns.ok
+        aegisub.cancel() if not btn or btn==btns.cancel
 
         with cfg
             .pos  = {.pos_x, .pos_y}
