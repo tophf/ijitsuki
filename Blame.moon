@@ -93,11 +93,11 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
 
     -- load user config if script hasn't one
     userconfig = '?user/'..script_name..'.conf'
-    userconfigpath = aegisub.decode_path('?user/'..script_name..'.conf')
+    userconfigpath = aegisub.decode_path userconfig
     if not cfg
         f = io.open userconfigpath,'r'
         if f
-            ok,_cfg = pcall cfgdeserialize, f\read('*all')
+            ok,_cfg = pcall cfgdeserialize, f\read '*all'
             if ok and _cfg.save
                 cfgsource = userconfig
                 cfg = _cfg
@@ -140,9 +140,9 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
     for c in *dlg do for i,k in ipairs {'class','x','y','width','height'} do c[k] = c[i] --conform the dialog
 
     -- show dialog
-    btn,cfg = aegisub.dialog.display(dlg, BTNS.list)
+    btn,cfg = aegisub.dialog.display(dlg, BTNS.list,1,2)
 
-    aegisub.cancel() if btn != BTNS.ok
+    aegisub.cancel() if not btn or btn == BTNS.cancel
 
     switch cfg.save
         when SAVE.script
