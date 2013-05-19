@@ -43,7 +43,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             if cfg.check_max_lines and style
                 screen_estate_x = playresX - max(.margin_r, style.margin_r) - max(.margin_l, style.margin_l)
                 lines = 0
-                for span in textonly_withbreaks\gsub('\\N','\n')\split '\n'
+                for span in textonly_withbreaks\gsub('\\N','\n')\split_iter '\n'
                     lines += ({aegisub.text_extents(style, span)})[1]/screen_estate_x
                     lines = math.floor(lines) + 1 if lines - math.floor(lines) > 0
                 msg ..= (' %dlines')\format lines if lines > cfg.max_lines
@@ -63,11 +63,11 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
         msg != ''
 
     max = (a,b) -> if a>b then a else b
-    string.split = (sepcharclass) => @\gmatch '([^'..sepcharclass..']+)'
+    string.split_iter = (sepcharclass) => @\gmatch '([^'..sepcharclass..']+)'
     string.trim = => @\gsub('^%s+','')\gsub('%s+$','')
     string.val = => @=='true' and (@=='true' or @=='false') or tonumber(@) and @\match('^%s*[0-9.]+%s*$') or @
     cfgserialize = (t,sep=', ') -> if t then table.concat [k..':'..tostring(v) for k,v in pairs t], sep else ''
-    cfgdeserialize = (s) -> {unpack [i\trim!\val! for i in kv\split ':'] for kv in s\split ',\n\r'}
+    cfgdeserialize = (s) -> {unpack [i\trim!\val! for i in kv\split_iter ':'] for kv in s\split_iter ',\n\r'}
 
     -- init & collect info
     playresX = 384
