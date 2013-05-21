@@ -163,12 +163,13 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
 
     -- process subs
     log_only = not cfg.select_errors and not cfg.list_errors
-    if cfg.selected_only
-        [i for i in *sel when blameline i,subs[i],cfg]
-    else
-        [i for i,s in ipairs subs when blameline i,s,cfg]
+    tosel = if cfg.selected_only
+                [i for i in *sel when blameline i,subs[i],cfg]
+            else
+                [i for i,s in ipairs subs when blameline i,s,cfg]
 
     if playresX<=0
         aegisub.log 'Max screen lines checking not performed due to absent/invalid script horizontal resolution (PlayResX)'
     aegisub.progress.set 100 if log_only or playresX<=0
-    nil if not cfg.select_errors
+
+    tosel if cfg.select_errors
