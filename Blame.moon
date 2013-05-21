@@ -40,7 +40,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             msg ..= (' long%gs')\format  duration if cfg.check_max_duration and duration > cfg.max_duration
             msg ..= (' %dcps')\format    cps      if cfg.check_max_chars_per_sec and math.floor(cps) > cfg.max_chars_per_sec
 
-            if cfg.check_max_lines and style
+            if cfg.check_max_lines and style and playresX>0
                 screen_estate_x = playresX - max(.margin_r, style.margin_r) - max(.margin_l, style.margin_l)
                 lines = 0
                 for span in textonly_withbreaks\gsub('\\N','\n')\split_iter '\n'
@@ -70,7 +70,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
     cfgdeserialize = (s) -> {unpack [i\trim!\val! for i in kv\split_iter ':'] for kv in s\split_iter ',\n\r'}
 
     -- init & collect info
-    playresX = 384
+    playresX = 0
     styles = {}
     cfglineindex = {}
     firstdialogueline = 0
@@ -168,5 +168,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
     else
         [i for i,s in ipairs subs when blameline i,s,cfg]
 
-    aegisub.progress.set 100 if log_only
+    if playresX<=0
+        aegisub.log 'Max screen lines checking not performed due to absent/invalid script horizontal resolution (PlayResX)'
+    aegisub.progress.set 100 if log_only or playresX<=0
     nil if not cfg.select_errors
