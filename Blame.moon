@@ -79,7 +79,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
     -- init & collect info
     playresX = 0
     styles = {}
-    cfglineindex = {}
+    cfglineindices = {}
     firstdialogueline = 0
     local cfg, cfgsource
 
@@ -89,7 +89,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             when 'info'
                 playresX = tonumber(s.value) if s.key=='PlayResX' and s.value\match '^%s*%d+%s*$'
                 if s.key==script_name
-                    table.insert cfglineindex, i
+                    table.insert cfglineindices, i
                     ok,_cfg = pcall cfgdeserialize, s.value
                     cfg,cfgsource = _cfg,'script' if ok and _cfg.save
             when 'style'
@@ -128,20 +128,20 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
 
     dlg = {
         {'checkbox',  0,0,3,1, label:'Min duration, seconds:', name:'check_min_duration', value:cfg.check_min_duration}
+        {'floatedit', 3,0,1,1,  name:'min_duration', value:cfg.min_duration, min:0, max:10, step:0.1}
         {'checkbox',  0,1,4,1, label:'Ignore min duration if CPS is ok', name:'ignore_short_if_cps_ok', value:cfg.ignore_short_if_cps_ok}
         {'checkbox',  0,2,3,1, label:'Max duration, seconds:', name:'check_max_duration', value:cfg.check_max_duration}
-        {'floatedit', 3,0,1,1, name:'min_duration', value:cfg.min_duration, min:0, max:10, step:0.1}
-        {'floatedit', 3,2,1,1, name:'max_duration', value:cfg.max_duration, min:0, max:100, step:1}
+        {'floatedit', 3,2,1,1,  name:'max_duration', value:cfg.max_duration, min:0, max:100, step:1}
 
         {'checkbox',  0,3,3,1, label:'Max screen lines per subtitle', name:'check_max_lines', value:cfg.check_max_lines}
-        {'intedit',   3,3,1,1, name:'max_lines', value:cfg.max_lines, min:1, max:10}
+        {'intedit',   3,3,1,1,  name:'max_lines', value:cfg.max_lines, min:1, max:10}
 
         {'checkbox',  0,5,3,1, label:'Max characters per second', name:'check_max_chars_per_sec', value:cfg.check_max_chars_per_sec}
-        {'intedit',   3,5,1,1, name:'max_chars_per_sec', value:cfg.max_chars_per_sec, min:1, max:100}
+        {'intedit',   3,5,1,1,  name:'max_chars_per_sec', value:cfg.max_chars_per_sec, min:1, max:100}
 
-        {'checkbox',  0,7,4,1, name:'select_errors', label:'Select bad lines', value:cfg.select_errors}
-        {'checkbox',  0,8,4,1, name:'list_errors', label:'List errors in Effect field', value:cfg.list_errors}
-        {'dropdown',  0,9,4,1, name:'save', items:SAVE.list, value:cfg.save}
+        {'checkbox',  0,7,4,1,  name:'select_errors', label:'Select bad lines', value:cfg.select_errors}
+        {'checkbox',  0,8,4,1,  name:'list_errors', label:'List errors in Effect field', value:cfg.list_errors}
+        {'dropdown',  0,9,4,1,  name:'save', items:SAVE.list, value:cfg.save}
         {'label',     0,10,4,2,label:'Config: '..cfgsource}
         {'checkbox',  0,12,3,1, name:'selected_only', label:'Selected lines only', value:cfg.selected_only}
     }
@@ -154,7 +154,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
 
     switch cfg.save
         when SAVE.script
-            subs.delete unpack cfglineindex if #cfglineindex > 0
+            subs.delete unpack cfglineindices if #cfglineindices > 0
             subs.append {class:'info', section:'Script Info', key:script_name, value:cfgserialize(cfg)}
 
         when SAVE.user
@@ -166,7 +166,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
                 f\close!
 
         when SAVE.remove
-            subs.delete unpack cfglineindex if #cfglineindex > 0
+            subs.delete unpack cfglineindices if #cfglineindices > 0
             return
 
     -- process subs
