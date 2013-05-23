@@ -19,6 +19,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
         check_max_duration:true,      max_duration:10.0
         check_max_lines:true,         max_lines:2
         check_max_chars_per_sec:true, max_chars_per_sec:25
+        check_missing_styles:true
         selected_only: false
         select_errors: true
         list_errors: true
@@ -54,6 +55,13 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
                     lines += ({aegisub.text_extents(style, span)})[1]/screen_estate_x
                     lines = math.floor(lines) + 1 if lines - math.floor(lines) > 0
                 msg ..= (' %dlines')\format lines if lines > cfg.max_lines
+
+            if cfg.check_missing_styles
+                missing = styles[.style]==nil
+                for ovr in .text\gmatch "{(.*\\r.*)}"
+                    for ovrstyle in ovr\gmatch "\\r([^}\\]+)"
+                        missing = true if not styles[ovrstyle]
+                msg ..= ' nostyle' if missing
 
             msg = msg\sub(2)
             if (msg != '' or .effect != '') and msg != .effect and cfg.list_errors
@@ -136,8 +144,10 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
         {'checkbox',  0,3,3,1, label:'Max screen lines per subtitle', name:'check_max_lines', value:cfg.check_max_lines}
         {'intedit',   3,3,1,1,  name:'max_lines', value:cfg.max_lines, min:1, max:10}
 
-        {'checkbox',  0,5,3,1, label:'Max characters per second', name:'check_max_chars_per_sec', value:cfg.check_max_chars_per_sec}
-        {'intedit',   3,5,1,1,  name:'max_chars_per_sec', value:cfg.max_chars_per_sec, min:1, max:100}
+        {'checkbox',  0,4,3,1, label:'Max characters per second', name:'check_max_chars_per_sec', value:cfg.check_max_chars_per_sec}
+        {'intedit',   3,4,1,1,  name:'max_chars_per_sec', value:cfg.max_chars_per_sec, min:1, max:100}
+
+        {'checkbox',  0,5,3,1, label:'Missing style definitions', name:'check_missing_styles', value:cfg.check_missing_styles}
 
         {'checkbox',  0,7,4,1,  name:'select_errors', label:'Select bad lines', value:cfg.select_errors}
         {'checkbox',  0,8,4,1,  name:'list_errors', label:'List errors in Effect field', value:cfg.list_errors}
