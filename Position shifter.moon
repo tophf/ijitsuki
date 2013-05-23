@@ -47,7 +47,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             s = s\gsub "\\(i?clip%(%s*%d*%s*%,?)([mlbsc%s%d%-]+)%)",
                 (tag,numbers) -> ("\\%s%s)")\format tag,
                     numbers\gsub "(-?%d+)%s*(-?%d+)",
-                        (x,y) -> ("%d %d")\format float2str(x)+cfg.clip_x, float2str(y)+cfg.clip_y
+                        (x,y) -> ("%d %d")\format arraysum2str({x,y}, cfg.clip)
 
             line.text = s
             subs[i] = line
