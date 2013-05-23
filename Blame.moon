@@ -15,6 +15,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
 
     DEFAULTS = {
         check_min_duration:true,      min_duration:1.0
+        ignore_short_if_cps_ok: true
         check_max_duration:true,      max_duration:10.0
         check_max_lines:true,         max_lines:2
         check_max_chars_per_sec:true, max_chars_per_sec:25
@@ -36,9 +37,15 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             cps = if duration==0 then 0 else length/duration
             style = styles[.style] or styles['Default'] or styles['*Default']
 
-            msg   = (' short%gs')\format duration if cfg.check_min_duration and duration < cfg.min_duration
-            msg ..= (' long%gs')\format  duration if cfg.check_max_duration and duration > cfg.max_duration
-            msg ..= (' %dcps')\format    cps      if cfg.check_max_chars_per_sec and math.floor(cps) > cfg.max_chars_per_sec
+            if cfg.check_min_duration and duration < cfg.min_duration
+                if not cfg.ignore_short_if_cps_ok or math.floor(cps) > cfg.max_chars_per_sec
+                    msg   = (' short%gs')\format duration
+
+            if cfg.check_max_duration and duration > cfg.max_duration
+                msg ..= (' long%gs')\format duration
+
+            if cfg.check_max_chars_per_sec and math.floor(cps) > cfg.max_chars_per_sec
+                msg ..= (' %dcps')\format cps
 
             if cfg.check_max_lines and style and playresX>0
                 screen_estate_x = playresX - max(.margin_r, style.margin_r) - max(.margin_l, style.margin_l)
@@ -121,9 +128,10 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
 
     dlg = {
         {'checkbox',  0,0,3,1, label:'Min duration, seconds:', name:'check_min_duration', value:cfg.check_min_duration}
-        {'checkbox',  0,1,3,1, label:'Max duration, seconds:', name:'check_max_duration', value:cfg.check_max_duration}
+        {'checkbox',  0,1,4,1, label:'Ignore min duration if CPS is ok', name:'ignore_short_if_cps_ok', value:cfg.ignore_short_if_cps_ok}
+        {'checkbox',  0,2,3,1, label:'Max duration, seconds:', name:'check_max_duration', value:cfg.check_max_duration}
         {'floatedit', 3,0,1,1, name:'min_duration', value:cfg.min_duration, min:0, max:10, step:0.1}
-        {'floatedit', 3,1,1,1, name:'max_duration', value:cfg.max_duration, min:0, max:100, step:1}
+        {'floatedit', 3,2,1,1, name:'max_duration', value:cfg.max_duration, min:0, max:100, step:1}
 
         {'checkbox',  0,3,3,1, label:'Max screen lines per subtitle', name:'check_max_lines', value:cfg.check_max_lines}
         {'intedit',   3,3,1,1, name:'max_lines', value:cfg.max_lines, min:1, max:10}
