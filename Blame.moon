@@ -32,9 +32,8 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             return false if .class != 'dialogue' or .comment
 
             duration = (.end_time - .start_time)/1000
-            textonly_withbreaks = .text\gsub('{.-}','')\gsub('\\h',' ')
-            textonly = textonly_withbreaks\gsub('\\N','')\gsub("[ ,.-!?&():;/<>|%%$+=_'\"]",'')
-            length = textonly\len()
+            textonly = .text\gsub('{.-}','')\gsub('\\h',' ')
+            length = textonly\gsub('\\N','')\gsub("[ ,.-!?&():;/<>|%%$+=_'\"]",'')\len()
             cps = if duration==0 then 0 else length/duration
             style = styles[.style] or styles['Default'] or styles['*Default']
 
@@ -51,7 +50,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             if cfg.check_max_lines and style and playresX>0
                 screen_estate_x = playresX - max(.margin_r, style.margin_r) - max(.margin_l, style.margin_l)
                 lines = 0
-                for span in textonly_withbreaks\gsub('\\N','\n')\split_iter '\n'
+                for span in textonly\gsub('\\N','\n')\split_iter '\n'
                     lines += ({aegisub.text_extents(style, span)})[1]/screen_estate_x
                     lines = math.floor(lines) + 1 if lines - math.floor(lines) > 0
                 msg ..= (' %dlines')\format lines if lines > cfg.max_lines
@@ -72,8 +71,8 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
                 aegisub.log '%d: %s\t%s%s\n',
                     i - firstdialogueline,
                     msg,
-                    textonly_withbreaks\sub(1,20),
-                    (if #textonly_withbreaks>20 then '...' else '') if msg != ''
+                    textonly\sub(1,20),
+                    (if #textonly > 20 then '...' else '') if msg != ''
                 aegisub.progress.set i/#subs*100
         msg != ''
 
