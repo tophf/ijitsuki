@@ -55,14 +55,13 @@ aegisub.register_macro script_name, script_description, (subs, sel, act) ->
                     processline i,s if s.style==style
 
     showdialog = ->
-        local btns, cfg
-        with btns = ok:'&Add', load:'Loa&d...', cancel:'&Cancel'
-            .list = {.ok, .load, .cancel}
+        local cfg
+        btns = makebtns {{ok:'&Add'}, {load:'Loa&d...'}, {cancel:'&Cancel'}}
 
         dlg = makedialog!
 
         while true
-            btn,cfg = aegisub.dialog.display(dlg, btns.list, 1, 3)
+            btn,cfg = aegisub.dialog.display(dlg, btns.__list)
             switch btn
                 when btns.ok
                     break
@@ -90,6 +89,11 @@ aegisub.register_macro script_name, script_description, (subs, sel, act) ->
             f\close!
         else
             aegisub.log 'Error writing '..userconfigpath
+
+    makebtns = (list) -> -- example: {{ok:'&Add'}, {load:'Loa&d...'}, {cancel:'&Cancel'}}
+        btns = {k,v for L in *list for k,v in pairs L}
+        btns.__list = list
+        btns
 
     makedialog = ->
         _styles = {}

@@ -127,9 +127,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
         cfgsource ..= ' + defaults' if cfgdef
 
     -- create dialog
-    BTNS = ok:'&Go', cancel:'&Cancel'
-    with BTNS
-        .list = {.ok, .cancel}
+    BUTTONS = ok:'&Go', cancel:'&Cancel'
     with SAVE
         .list = {.no, .script, .user, .remove}
 
@@ -157,9 +155,9 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
     for c in *dlg do for i,k in ipairs {'class','x','y','width','height'} do c[k] = c[i] --conform the dialog
 
     -- show dialog
-    btn,cfg = aegisub.dialog.display(dlg, BTNS.list,1,2)
+    btn, cfg = aegisub.dialog.display(dlg, BUTTONS)
 
-    aegisub.cancel() if not btn or btn == BTNS.cancel
+    aegisub.cancel() if not btn or btn == BUTTONS.cancel
 
     switch cfg.save
         when SAVE.script
