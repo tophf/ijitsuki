@@ -15,7 +15,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
 
     execute = ->
         btns = ok:"&Shift", cancel:"&Cancel"
-        btn,cfg = aegisub.dialog.display(makedialog!, btns)
+        btn,cfg = aegisub.dialog.display(makedialog!, {btns.ok, btns.cancel}, btns)
 
         aegisub.cancel() if not btn or btn==btns.cancel
 

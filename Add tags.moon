@@ -56,12 +56,12 @@ aegisub.register_macro script_name, script_description, (subs, sel, act) ->
 
     showdialog = ->
         local cfg
-        btns = makebtns {{ok:'&Add'}, {load:'Loa&d...'}, {cancel:'&Cancel'}}
+        btns = makebuttons {{ok:'&Add'}, {load:'Loa&d...'}, {cancel:'&Cancel'}}
 
         dlg = makedialog!
 
         while true
-            btn,cfg = aegisub.dialog.display(dlg, btns.__list)
+            btn,cfg = aegisub.dialog.display(dlg, btns.__list, btns.__namedlist)
             switch btn
                 when btns.ok
                     break
@@ -90,9 +90,13 @@ aegisub.register_macro script_name, script_description, (subs, sel, act) ->
         else
             aegisub.log 'Error writing '..userconfigpath
 
-    makebtns = (list) -> -- example: {{ok:'&Add'}, {load:'Loa&d...'}, {cancel:'&Cancel'}}
-        btns = {k,v for L in *list for k,v in pairs L}
-        btns.__list = list
+    makebuttons = (extendedlist) -> -- example: {{ok:'&Add'}, {load:'Loa&d...'}, {cancel:'&Cancel'}}
+        btns = __list:{}, __namedlist:{}
+        for L in *extendedlist
+            for k,v in pairs L
+                btns[k] = v
+                btns.__namedlist[k] = v
+                table.insert btns.__list, v
         btns
 
     makedialog = ->
