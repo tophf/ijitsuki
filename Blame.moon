@@ -1,7 +1,34 @@
 export script_name = 'Blame'
-export script_description = 'Finds lines exceeding specified limits: min/max duration, CPS, line count, etc.'
+export script_description = table.concat {
+        'Marks lines exceeding specified limits:'
+        'min/max duration, CPS, line count, overlaps, missing styles.'
+    },' '
 
 require "utils"
+re = require "aegisub.re"
+
+for v in *{{-1,'previous'},{1,'next'}}
+    goto = 'Go to '..v[2]
+    aegisub.register_macro script_name..': '..goto, goto..' blemished line',
+        (subs, sel, act) ->
+            step = v[1]
+            dest = if step < 0 then 1 else #subs
+            is_blemished = re.compile table.concat {
+                    [[(?:^|\s)]]
+                    '(?:'
+                    [[(?:short|long)[\d.]+s]]
+                    [[|\d+(?:cps|lines)]]
+                    [[|ovr\d+?|nostyle]]
+                    ')'
+                    [[(?:\s|$)]]
+                }, ''
+            for i = act+step, dest, step
+                with line = subs[i]
+                    if line.class=='dialogue'
+                        if not line.comment
+                            if is_blemished\match line.effect
+                                return {i}
+            aegisub.cancel!
 
 aegisub.register_macro script_name, script_description, (subs, sel) ->
     local *
@@ -42,26 +69,27 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
 
         cfgwrite!
 
-        lines = if cfg.selected_only
-                    for i in *sel
-                        continue if subs[i].comment
-                        {i:i,line:subs[i]}
-                else
-                    for i,line in ipairs subs
-                        continue if line.class!='dialogue' or line.comment
-                        {i:i,line:line}
+        local lines
+        if cfg.selected_only
+            lines = for i in *sel
+                    continue if subs[i].comment
+                    {i:i,line:subs[i]}
+        else
+            lines = for i,line in ipairs subs
+                    continue if line.class!='dialogue' or line.comment
+                    {i:i,line:line}
 
         if cfg.check_overlaps
             overlap_end = 0
             table.sort lines, (a,b) ->
-                a_t,b_t = a.line.start_time, b.line.start_time
+                a_t, b_t = a.line.start_time, b.line.start_time
                 a_t < b_t or (a_t == b_t and a.i < b.i)
 
         tosel = [v.i for num,v in ipairs lines when blameline num,v,lines]
 
         if cfg.log_errors or not (cfg.list_errors or cfg.select_errors)
-            aegisub.log '\n'..#tosel..' lines blamed.\n'
-        if playresX<=0
+            aegisub.log '\n%d lines blamed.\n',#tosel
+        if playresX <= 0
             aegisub.log '%s %s',
                 'Max screen lines checking not performed',
                 'due to absent/invalid script horizontal resolution (PlayResX)'
@@ -92,7 +120,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
                 if cfg.check_max_chars_per_sec and math.floor(cps) > cfg.max_chars_per_sec
                     msg ..= (' %dcps')\format cps
 
-                if cfg.check_max_lines and style and playresX>0
+                if cfg.check_max_lines and style and playresX > 0
                     available_width = playresX
                     available_width -= if .margin_r>0 then .margin_r else style.margin_r
                     available_width -= if .margin_l>0 then .margin_l else style.margin_l
@@ -129,21 +157,33 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
                 subs[i] = line
 
             if not cfg.list_errors or cfg.log_errors
-                aegisub.log '%d: %s\t%s%s\n',
-                    i - dialogfirst + 1,
-                    msg,
-                    textonly\sub(1,20),
-                    (if #textonly > 20 then '...' else '') if msg != ''
-                aegisub.progress.set num/#subs*100
+                aegisub.progress.set num/#lines*100
+                if msg != ''
+                    aegisub.log '%d: %s\t%s%s\n',
+                        i - dialogfirst + 1,
+                        msg,
+                        textonly\sub(1,20),
+                        (if #textonly > 20 then '...' else '')
         msg != ''
 
-    max = (a, b) -> if a>b then a else b
+    max = (a, b) -> if a > b then a else b
     string.split_iter = (sepcharclass) => @\gmatch '([^'..sepcharclass..']+)'
     string.trim = => @\gsub('^%s+','')\gsub('%s+$','')
-    string.val = => @=='true' and (@=='true' or @=='false') or tonumber(@) and @\match('^%s*[0-9.]+%s*$') or @
+    string.val = =>
+        s = @\trim!\lower!
+        return true if s=='true'
+        return false if s=='false'
+        return tonumber s if s\match '^%-?[0-9.]+$'
+        @
 
-    cfgserialize = (t, sep) -> if t then table.concat [k..':'..tostring(v) for k,v in pairs t], sep else ''
-    cfgdeserialize = (s) -> {unpack [i\trim!\val! for i in kv\split_iter ':'] for kv in s\split_iter ',\n\r'}
+    cfgserialize = (t, sep) ->
+        return '' unless t
+        table.concat [k..':'..tostring(v) for k,v in pairs t], sep
+
+    cfgdeserialize = (s) ->
+        kv2pair = (kv) -> unpack [i\val! for i in kv\split_iter ':']
+        {kv2pair kv for kv in s\split_iter ',\n\r'}
+
     cfgread = ->
         --load user config if script hasn't one
         userconfig = '?user/'..script_name..'.conf'
@@ -151,7 +191,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
         if not cfg
             f = io.open userconfigpath,'r'
             if f
-                ok,_cfg = pcall cfgdeserialize, f\read '*all'
+                ok, _cfg = pcall(cfgdeserialize, f\read '*all')
                 if ok and _cfg.save
                     cfgsource = userconfig
                     cfg = _cfg
@@ -197,8 +237,8 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
                     playresX = tonumber(s.value) if s.key=='PlayResX' and s.value\match '^%s*%d+%s*$'
                     if s.key==script_name
                         table.insert cfglineindices, i
-                        ok,_cfg = pcall cfgdeserialize, s.value
-                        cfg,cfgsource = _cfg,'script' if ok and _cfg.save
+                        ok, _cfg = pcall(cfgdeserialize, s.value)
+                        cfg, cfgsource = _cfg, 'script' if ok and _cfg.save
                 when 'style'
                     styles[s.name] = s
                 when 'dialogue'
@@ -211,40 +251,50 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
 
         --accels: gcnixlhoftmsrwe
         dlg = {
-            {'checkbox',  0,0,7,1, label:'Mi&n duration, seconds:', name:'check_min_duration', value:cfg.check_min_duration}
+            {'checkbox',  0,0,7,1, label:'Mi&n duration, seconds:', name:'check_min_duration',
+                                   value:cfg.check_min_duration}
             {'floatedit', 7,0,2,1,  name:'min_duration', value:cfg.min_duration, min:0, max:10, step:0.1}
-
-            {'checkbox',  0,1,9,1, label:'&Ignore if CPS is ok', name:'ignore_short_if_cps_ok', value:cfg.ignore_short_if_cps_ok}
-
-            {'checkbox',  0,2,7,1, label:'Ma&x duration, seconds:', name:'check_max_duration', value:cfg.check_max_duration}
+            ---------------------------------------------------------
+            {'checkbox',  0,1,9,1, label:'&Ignore if CPS is ok', name:'ignore_short_if_cps_ok',
+                                   value:cfg.ignore_short_if_cps_ok}
+            ---------------------------------------------------------
+            {'checkbox',  0,2,7,1, label:'Ma&x duration, seconds:', name:'check_max_duration',
+                                   value:cfg.check_max_duration}
             {'floatedit', 7,2,2,1,  name:'max_duration', value:cfg.max_duration, min:0, max:100, step:1}
-
-            {'checkbox',  0,3,7,1, label:'Max screen &lines per subtitle', name:'check_max_lines', value:cfg.check_max_lines,
+            ---------------------------------------------------------
+            {'checkbox',  0,3,7,1, label:'Max screen &lines per subtitle', name:'check_max_lines',
+                                   value:cfg.check_max_lines,
                                     hint:'Requires 1) playresX in script header 2) all used fonts installed'}
             {'intedit',   7,3,2,1,  name:'max_lines', value:cfg.max_lines, min:1, max:10}
-
-            {'checkbox',  0,4,7,1, label:'Max c&haracters per second', name:'check_max_chars_per_sec', value:cfg.check_max_chars_per_sec}
+            ---------------------------------------------------------
+            {'checkbox',  0,4,7,1, label:'Max c&haracters per second', name:'check_max_chars_per_sec',
+                                   value:cfg.check_max_chars_per_sec}
             {'intedit',   7,4,2,1,  name:'max_chars_per_sec', value:cfg.max_chars_per_sec, min:1, max:100}
-
+            ---------------------------------------------------------
             {'checkbox',  0,5,3,1, label:'&Overlaps:', name:'check_overlaps', value:cfg.check_overlaps}
-            {'checkbox',  3,5,5,1, label:'...report only the &first in group', name:'list_only_first_overlap', value:cfg.list_only_first_overlap}
-
-            {'checkbox',  0,6,9,1, label:'Skip ALL RULES ABOVE on &typeset', name:'ignore_typeset', value:cfg.ignore_typeset,
-                                    hint:TYPESETREGEXP}
-
-            {'checkbox',  0,8,9,1, label:'&Missing style definitions', name:'check_missing_styles', value:cfg.check_missing_styles}
-
+            {'checkbox',  3,5,5,1, label:'...report only the &first in group', name:'list_only_first_overlap',
+                                   value:cfg.list_only_first_overlap}
+            ---------------------------------------------------------
+            {'checkbox',  0,6,9,1, label:'Skip ALL RULES ABOVE on &typeset', name:'ignore_typeset',
+                                   value:cfg.ignore_typeset, hint:TYPESETREGEXP}
+            ---------------------------------------------------------
+            {'checkbox',  0,8,9,1, label:'&Missing style definitions', name:'check_missing_styles',
+                                   value:cfg.check_missing_styles}
+            ---------------------------------------------------------
             {'checkbox',  0,10,3,1,label:'&Select', name:'select_errors', value:cfg.select_errors}
             {'checkbox',  3,10,3,1,label:'&Report to <Effect>', name:'list_errors', value:cfg.list_errors}
             {'checkbox',  7,10,1,1,label:'Sho&w in log', name:'log_errors', value:cfg.log_errors,
                                     hint:'...forced when both Select and Report are disabled'}
-            {'checkbox',  0,11,9,1,label:'Process s&elected lines only', name:'selected_only', value:cfg.selected_only}
+            {'checkbox',  0,11,9,1,label:'Process s&elected lines only', name:'selected_only',
+                                   value:cfg.selected_only}
             {'dropdown',  0,12,9,1, name:'save', items:SAVE.list, value:cfg.save}
             {'label',     0,13,9,2,label:'Config: '..cfgsource}
         }
-        for c in *dlg do for i,k in ipairs {'class','x','y','width','height'} do c[k] = c[i] --conform the dialog
+        --conform the dialog
+        for c in *dlg
+            for i,k in ipairs {'class','x','y','width','height'}
+                c[k] = c[i]
 
-        re = require "aegisub.re" --"re" conflicts with some other lua module installed by luarocks // (c) torque
         TYPESETREGEXP = re.compile TYPESETREGEXP
 
     execute!

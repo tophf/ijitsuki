@@ -1,6 +1,57 @@
 script_name = 'Blame'
-script_description = 'Finds lines exceeding specified limits: min/max duration, CPS, line count, etc.'
+script_description = table.concat({
+  'Marks lines exceeding specified limits:',
+  'min/max duration, CPS, line count, overlaps, missing styles.'
+}, ' ')
 require("utils")
+local re = require("aegisub.re")
+local _list_0 = {
+  {
+    -1,
+    'previous'
+  },
+  {
+    1,
+    'next'
+  }
+}
+for _index_0 = 1, #_list_0 do
+  local v = _list_0[_index_0]
+  local goto = 'Go to ' .. v[2]
+  aegisub.register_macro(script_name .. ': ' .. goto, goto .. ' blemished line', function(subs, sel, act)
+    local step = v[1]
+    local dest
+    if step < 0 then
+      dest = 1
+    else
+      dest = #subs
+    end
+    local is_blemished = re.compile(table.concat({
+      [[(?:^|\s)]],
+      '(?:',
+      [[(?:short|long)[\d.]+s]],
+      [[|\d+(?:cps|lines)]],
+      [[|ovr\d+?|nostyle]],
+      ')',
+      [[(?:\s|$)]]
+    }, ''))
+    for i = act + step, dest, step do
+      do
+        local line = subs[i]
+        if line.class == 'dialogue' then
+          if not line.comment then
+            if is_blemished:match(line.effect) then
+              return {
+                i
+              }
+            end
+          end
+        end
+      end
+    end
+    return aegisub.cancel()
+  end)
+end
 return aegisub.register_macro(script_name, script_description, function(subs, sel)
   local SAVE, DEFAULTS, TYPESETREGEXP, execute, blameline, max, cfgserialize, cfgdeserialize, cfgread, cfgwrite, init
   local cfg, cfgsource, btns, dlg, userconfigpath
@@ -117,7 +168,7 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
       tosel = _accum_0
     end
     if cfg.log_errors or not (cfg.list_errors or cfg.select_errors) then
-      aegisub.log('\n' .. #tosel .. ' lines blamed.\n')
+      aegisub.log('\n%d lines blamed.\n', #tosel)
     end
     if playresX <= 0 then
       aegisub.log('%s %s', 'Max screen lines checking not performed', 'due to absent/invalid script horizontal resolution (PlayResX)')
@@ -227,6 +278,7 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
         subs[i] = line
       end
       if not cfg.list_errors or cfg.log_errors then
+        aegisub.progress.set(num / #lines * 100)
         if msg ~= '' then
           aegisub.log('%d: %s\t%s%s\n', i - dialogfirst + 1, msg, textonly:sub(1, 20), ((function()
             if #textonly > 20 then
@@ -236,7 +288,6 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
             end
           end)()))
         end
-        aegisub.progress.set(num / #subs * 100)
       end
     end
     return msg ~= ''
@@ -255,35 +306,48 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
     return self:gsub('^%s+', ''):gsub('%s+$', '')
   end
   string.val = function(self)
-    return self == 'true' and (self == 'true' or self == 'false') or tonumber(self) and self:match('^%s*[0-9.]+%s*$') or self
+    local s = self:trim():lower()
+    if s == 'true' then
+      return true
+    end
+    if s == 'false' then
+      return false
+    end
+    if s:match('^%-?[0-9.]+$') then
+      return tonumber(s)
+    end
+    return self
   end
   cfgserialize = function(t, sep)
-    if t then
-      return table.concat((function()
-        local _accum_0 = { }
-        local _len_0 = 1
-        for k, v in pairs(t) do
-          _accum_0[_len_0] = k .. ':' .. tostring(v)
-          _len_0 = _len_0 + 1
-        end
-        return _accum_0
-      end)(), sep)
-    else
+    if not (t) then
       return ''
     end
+    return table.concat((function()
+      local _accum_0 = { }
+      local _len_0 = 1
+      for k, v in pairs(t) do
+        _accum_0[_len_0] = k .. ':' .. tostring(v)
+        _len_0 = _len_0 + 1
+      end
+      return _accum_0
+    end)(), sep)
   end
   cfgdeserialize = function(s)
-    local _tbl_0 = { }
-    for kv in s:split_iter(',\n\r') do
-      local _key_0, _val_0 = unpack((function()
+    local kv2pair
+    kv2pair = function(kv)
+      return unpack((function()
         local _accum_0 = { }
         local _len_0 = 1
         for i in kv:split_iter(':') do
-          _accum_0[_len_0] = i:trim():val()
+          _accum_0[_len_0] = i:val()
           _len_0 = _len_0 + 1
         end
         return _accum_0
       end)())
+    end
+    local _tbl_0 = { }
+    for kv in s:split_iter(',\n\r') do
+      local _key_0, _val_0 = kv2pair(kv)
       _tbl_0[_key_0] = _val_0
     end
     return _tbl_0
@@ -592,7 +656,6 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
         c[k] = c[i]
       end
     end
-    local re = require("aegisub.re")
     TYPESETREGEXP = re.compile(TYPESETREGEXP)
   end
   return execute()
