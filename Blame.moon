@@ -69,7 +69,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
 
         tosel if cfg.select_errors
 
-    blameline = (num,v,lines) ->
+    blameline = (num, v, lines) ->
         msg = ''
         {:i,:line} = v
         with line
@@ -107,7 +107,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
                     if .start_time < overlap_end
                         msg ..= ' ovr' unless cfg.list_only_first_overlap
                     else
-                        -- new timegroup start, let's count overlapped lines
+                        --new timegroup start, let's count overlapped lines
                         overlap_end = .end_time
                         cnt = 0
                         for j = num+1,#lines
@@ -142,10 +142,10 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
     string.trim = => @\gsub('^%s+','')\gsub('%s+$','')
     string.val = => @=='true' and (@=='true' or @=='false') or tonumber(@) and @\match('^%s*[0-9.]+%s*$') or @
 
-    cfgserialize = (t,sep) -> if t then table.concat [k..':'..tostring(v) for k,v in pairs t], sep else ''
+    cfgserialize = (t, sep) -> if t then table.concat [k..':'..tostring(v) for k,v in pairs t], sep else ''
     cfgdeserialize = (s) -> {unpack [i\trim!\val! for i in kv\split_iter ':'] for kv in s\split_iter ',\n\r'}
     cfgread = ->
-        -- load user config if script hasn't one
+        --load user config if script hasn't one
         userconfig = '?user/'..script_name..'.conf'
         userconfigpath = aegisub.decode_path userconfig
         if not cfg
@@ -209,6 +209,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
         with SAVE
             .list = {.no, .script, .user, .removeonly}
 
+        --accels: gcnixlhoftmsrwe
         dlg = {
             {'checkbox',  0,0,7,1, label:'Mi&n duration, seconds:', name:'check_min_duration', value:cfg.check_min_duration}
             {'floatedit', 7,0,2,1,  name:'min_duration', value:cfg.min_duration, min:0, max:10, step:0.1}
@@ -222,7 +223,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
                                     hint:'Requires 1) playresX in script header 2) all used fonts installed'}
             {'intedit',   7,3,2,1,  name:'max_lines', value:cfg.max_lines, min:1, max:10}
 
-            {'checkbox',  0,4,7,1, label:'Max &characters per second', name:'check_max_chars_per_sec', value:cfg.check_max_chars_per_sec}
+            {'checkbox',  0,4,7,1, label:'Max c&haracters per second', name:'check_max_chars_per_sec', value:cfg.check_max_chars_per_sec}
             {'intedit',   7,4,2,1,  name:'max_chars_per_sec', value:cfg.max_chars_per_sec, min:1, max:100}
 
             {'checkbox',  0,5,3,1, label:'&Overlaps:', name:'check_overlaps', value:cfg.check_overlaps}
@@ -234,16 +235,16 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             {'checkbox',  0,8,9,1, label:'&Missing style definitions', name:'check_missing_styles', value:cfg.check_missing_styles}
 
             {'checkbox',  0,10,3,1,label:'&Select', name:'select_errors', value:cfg.select_errors}
-            {'checkbox',  3,10,3,1,label:'Report to <Effect>', name:'list_errors', value:cfg.list_errors}
-            {'checkbox',  7,10,1,1,label:'Log', name:'log_errors', value:cfg.log_errors,
+            {'checkbox',  3,10,3,1,label:'&Report to <Effect>', name:'list_errors', value:cfg.list_errors}
+            {'checkbox',  7,10,1,1,label:'Sho&w in log', name:'log_errors', value:cfg.log_errors,
                                     hint:'...forced when both Select and Report are disabled'}
-            {'checkbox',  0,11,9,1,label:'Process &selected lines only', name:'selected_only', value:cfg.selected_only}
+            {'checkbox',  0,11,9,1,label:'Process s&elected lines only', name:'selected_only', value:cfg.selected_only}
             {'dropdown',  0,12,9,1, name:'save', items:SAVE.list, value:cfg.save}
             {'label',     0,13,9,2,label:'Config: '..cfgsource}
         }
         for c in *dlg do for i,k in ipairs {'class','x','y','width','height'} do c[k] = c[i] --conform the dialog
 
-        re = require "aegisub.re" -- "re" conflicts with some other lua module installed by luarocks // (c) torque
+        re = require "aegisub.re" --"re" conflicts with some other lua module installed by luarocks // (c) torque
         TYPESETREGEXP = re.compile TYPESETREGEXP
 
     execute!

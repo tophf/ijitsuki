@@ -464,7 +464,7 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
         4,
         7,
         1,
-        label = 'Max &characters per second',
+        label = 'Max c&haracters per second',
         name = 'check_max_chars_per_sec',
         value = cfg.check_max_chars_per_sec
       },
@@ -536,7 +536,7 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
         10,
         3,
         1,
-        label = 'Report to <Effect>',
+        label = '&Report to <Effect>',
         name = 'list_errors',
         value = cfg.list_errors
       },
@@ -546,7 +546,7 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
         10,
         1,
         1,
-        label = 'Log',
+        label = 'Sho&w in log',
         name = 'log_errors',
         value = cfg.log_errors,
         hint = '...forced when both Select and Report are disabled'
@@ -557,7 +557,7 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
         11,
         9,
         1,
-        label = 'Process &selected lines only',
+        label = 'Process s&elected lines only',
         name = 'selected_only',
         value = cfg.selected_only
       },
