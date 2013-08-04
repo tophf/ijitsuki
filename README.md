@@ -8,6 +8,7 @@ Affects only the lines that do not have the \be or \blur tag.
 ### [Add tags](Add tags.moon)
 Adds user-specified tags to all/selected lines.
 20 last used tags are remembered between sessions and may be re-used later.
+
 ![Screenshot](http://img823.imageshack.us/img823/2214/3c01.png)
 
 ### [Blame](Blame.moon)
