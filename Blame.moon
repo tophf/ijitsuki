@@ -4,8 +4,8 @@ export script_description = table.concat {
         'min/max duration, CPS, line count, overlaps, missing styles.'
     },' '
 
-require "utils"
-re = require "aegisub.re"
+require 'utils'
+re = require 'aegisub.re'
 
 for v in *{{-1,'previous'},{1,'next'}}
     goto = 'Go to '..v[2]
@@ -33,7 +33,7 @@ for v in *{{-1,'previous'},{1,'next'}}
 aegisub.register_macro script_name, script_description, (subs, sel) ->
     local *
     local cfg, cfgsource, btns, dlg, userconfigpath
-    local playresX, styles, cfglineindices, dialogfirst, overlap_end
+    local playres, styles, cfglineindices, dialogfirst, overlap_end
 
     SAVE = {
         no:         "Apply and don't save settings"
@@ -50,7 +50,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
         check_max_chars_per_sec:true, max_chars_per_sec:25
         check_missing_styles:true
         check_overlaps:true,          list_only_first_overlap:true
-        ignore_typeset:true
+        ignore_signs:true
         selected_only:false
         select_errors:true
         list_errors:true
@@ -58,7 +58,37 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
         save:SAVE.user
     }
 
-    TYPESETREGEXP = [[\{.*?\\(pos|move|k|kf|ko|K|t|fax|fay|org|frx|fry|frz|an)[^a-zA-Z].*?\}]]
+    SIGNS = table.concat {
+            [[\{.*?\\(]]
+            'pos|move|an|org|'
+            'frx|fry|frz|'
+            'fax|fay|'
+            'k|kf|ko|K|'
+            't'
+            [[)[^a-zA-Z].*?\}]]
+        },''
+    SIGNSre = re.compile SIGNS
+
+    METRICS = {}
+    with METRICS
+        .q2_re = re.compile [[\{.*?\\q2.*?\}]]
+        .tag = {
+                fn:  'fontname'
+                r:   ''
+                fsp: 'spacing'
+                fs:  'fontsize'
+                fscx:'scale_x'
+            }
+        alltags = table.concat [k for k,v in pairs .tag],'|'
+        allvalues = table.concat {
+                [[(?<=fn)(?:[^\\}]*|\\|\s*$)|]]
+                [[(?<=r)(?:[^\\}]*|\\|\s*$)|]]
+                [[(?:[\s\\]+|-?[\d.]+|\s*$)]]
+            },''
+        tagexpr = [[\\((?:]]..alltags..')(?:'..allvalues..'))'
+        .ovr_re = re.compile [[\{.*?]]..tagexpr..[[.*?\}]]
+        .tag_re = re.compile tagexpr
+        .tagparts_re = re.compile '('..alltags..')('..allvalues..')'
 
     execute = ->
         cfgread!
@@ -89,17 +119,17 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
 
         if cfg.log_errors or not (cfg.list_errors or cfg.select_errors)
             aegisub.log '\n%d lines blamed.\n',#tosel
-        if playresX <= 0
+        if playres.x <= 0
             aegisub.log '%s %s',
-                'Max screen lines checking not performed',
-                'due to absent/invalid script horizontal resolution (PlayResX)'
+                "Max screen lines checking not performed",
+                "Please, load video file and specify correct PlayRes in script's properties!"
         aegisub.progress.set 100
 
         tosel if cfg.select_errors
 
     blameline = (num, v, lines) ->
         msg = ''
-        {:i,:line} = v
+        {i:index, :line} = v
         with line
             duration = (.end_time - .start_time)/1000
             textonly = .text\gsub('{.-}','')\gsub('\\h',' ')
@@ -107,9 +137,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             cps = if duration==0 then 0 else length/duration
             style = styles[.style] or styles['Default'] or styles['*Default']
 
-            ignoretypeset = (line) -> cfg.ignore_typeset and TYPESETREGEXP\match line.text
-
-            if not ignoretypeset line
+            if not should_ignore_signs line
                 if cfg.check_min_duration and duration < cfg.min_duration
                     if not cfg.ignore_short_if_cps_ok or math.floor(cps) > cfg.max_chars_per_sec
                         msg   = (' short%gs')\format duration
@@ -120,15 +148,48 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
                 if cfg.check_max_chars_per_sec and math.floor(cps) > cfg.max_chars_per_sec
                     msg ..= (' %dcps')\format cps
 
-                if cfg.check_max_lines and style and playresX > 0
-                    available_width = playresX
-                    available_width -= if .margin_r>0 then .margin_r else style.margin_r
-                    available_width -= if .margin_l>0 then .margin_l else style.margin_l
+                if cfg.check_max_lines and style and playres.x > 0
                     numlines = 0
-                    for span in textonly\gsub('\\N','\n')\split_iter '\n'
-                        width = ({aegisub.text_extents(style, span..' ')})[1]
-                        --add one space to compensate aegisub.text_extents being too small
-                        numlines += math.floor(width/available_width + 0.9999999999)
+                    if METRICS.q2_re\match .text
+                        s = .text\gsub '\\N%s*{.-}%s*',''
+                        numlines = (#s - s\gsub('\\N','')\len!)/2 + 1
+                    else
+                        available_width = playres.x
+                        available_width -= if .margin_r>0 then .margin_r else style.margin_r
+                        available_width -= if .margin_l>0 then .margin_l else style.margin_l
+                        available_width *= playres.realx / playres.x
+                        ovrstyle = table.copy style
+
+                        for subline in .text\gsub('\\N','\n')\split_iter '\n'
+                            prevspanstart = 1
+                            subline = subline\trim!
+
+                            -- iterate blocks with {...\tags that alter width metrics...}
+                            for ovr, ovrstart, ovrend in METRICS.ovr_re\gfind subline
+                                numlines += calc_numlines subline\sub(prevspanstart, ovrstart-1),
+                                                          ovrstyle, available_width
+                                prevspanstart = ovrend + 1
+
+                                tagpos = 1
+                                -- iterate width-altering \tags inside current {} block
+                                -- and put overrides into style used for text width calculation
+                                while true
+                                    tag = METRICS.tag_re\match ovr, tagpos
+                                    break unless tag
+                                    tagpos = tag[2].last + 1
+
+                                    tagparts = METRICS.tagparts_re\match tag[2].str
+                                    tag.name, tag.value = tagparts[2].str, tagparts[3].str\trim!
+
+                                    if tag.name=='r'
+                                        ovrstyle = table.copy styles[tag.value] or style
+                                    else
+                                        set_style ovrstyle, tag, style
+
+                            numlines += calc_numlines subline\sub(prevspanstart),
+                                                      ovrstyle, available_width
+                            numlines = math.floor numlines + 0.9999999999
+
                     msg ..= (' %dlines')\format numlines if numlines > cfg.max_lines
 
                 if cfg.check_overlaps
@@ -141,30 +202,41 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
                         for j = num+1,#lines
                             L = lines[j].line
                             break if L.start_time >= overlap_end
-                            cnt += 1 if not ignoretypeset L
+                            cnt += 1 if not should_ignore_signs L
                         msg ..= ' ovr'..cnt if cnt > 0
 
             if cfg.check_missing_styles
                 missing = styles[.style]==nil
-                for ovr in .text\gmatch "{(.*\\r.*)}"
-                    for ovrstyle in ovr\gmatch "\\r([^}\\]+)"
+                for ovr in .text\gmatch '{(.*\\r.*)}'
+                    for ovrstyle in ovr\gmatch '\\r([^}\\]+)'
                         missing = true unless styles[ovrstyle]
                 msg ..= ' nostyle' if missing
 
             msg = msg\sub(2)
             if (msg != '' or .effect != '') and msg != .effect and cfg.list_errors
                 .effect = msg
-                subs[i] = line
+                subs[index] = line
 
             if not cfg.list_errors or cfg.log_errors
                 aegisub.progress.set num/#lines*100
                 if msg != ''
                     aegisub.log '%d: %s\t%s%s\n',
-                        i - dialogfirst + 1,
+                        index - dialogfirst + 1,
                         msg,
                         textonly\sub(1,20),
                         (if #textonly > 20 then '...' else '')
         msg != ''
+
+    should_ignore_signs = (line) -> cfg.ignore_signs and SIGNSre\match line.text
+
+    set_style = (style, tag, fallbackstyle) ->
+        field = METRICS.tag[tag.name]
+        style[field] = if tag.value!='' then tag.value else fallbackstyle[field]
+
+    calc_numlines = (text, style, available_width) ->
+        ok,width = pcall aegisub.text_extents, style, text\gsub('{.-}','')\gsub('\\h',' ')
+        return 0 unless ok
+        return width/available_width
 
     max = (a, b) -> if a > b then a else b
     string.split_iter = (sepcharclass) => @\gmatch '([^'..sepcharclass..']+)'
@@ -225,7 +297,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
                 aegisub.cancel!
 
     init = ->
-        playresX = 0
+        playres = x:0, y:0, realx:0
         styles = {}
         cfglineindices = {}
         dialogfirst = 0
@@ -234,8 +306,10 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             --assuming standard section order: info, styles, events
             switch s.class
                 when 'info'
-                    playresX = tonumber(s.value) if s.key=='PlayResX' and s.value\match '^%s*%d+%s*$'
-                    if s.key==script_name
+                    kl = s.key\lower!
+                    if kl=='playresx' or kl=='playresy'
+                        playres[kl\sub #kl] = tonumber s.value if s.value\match '^%s*%d+%s*$'
+                    elseif s.key==script_name
                         table.insert cfglineindices, i
                         ok, _cfg = pcall(cfgdeserialize, s.value)
                         cfg, cfgsource = _cfg, 'script' if ok and _cfg.save
@@ -245,11 +319,15 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
                     dialogfirst = i
                     break
 
+        if aegisub.video_size!
+            w,h,ar,artype = aegisub.video_size!
+            playres.realx = math.floor playres.y / h * w
+
         btns = ok:'&Go', cancel:'&Cancel'
         with SAVE
             .list = {.no, .script, .user, .removeonly}
 
-        --accels: gcnixlhoftmsrwe
+        --accels: gcnixlhofAmsrwe
         dlg = {
             {'checkbox',  0,0,7,1, label:'Mi&n duration, seconds:', name:'check_min_duration',
                                    value:cfg.check_min_duration}
@@ -264,7 +342,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             ---------------------------------------------------------
             {'checkbox',  0,3,7,1, label:'Max screen &lines per subtitle', name:'check_max_lines',
                                    value:cfg.check_max_lines,
-                                    hint:'Requires 1) playresX in script header 2) all used fonts installed'}
+                                    hint:'Requires 1) PlayRes in script header 2) all used fonts installed'}
             {'intedit',   7,3,2,1,  name:'max_lines', value:cfg.max_lines, min:1, max:10}
             ---------------------------------------------------------
             {'checkbox',  0,4,7,1, label:'Max c&haracters per second', name:'check_max_chars_per_sec',
@@ -275,8 +353,8 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             {'checkbox',  3,5,5,1, label:'...report only the &first in group', name:'list_only_first_overlap',
                                    value:cfg.list_only_first_overlap}
             ---------------------------------------------------------
-            {'checkbox',  0,6,9,1, label:'Skip ALL RULES ABOVE on &typeset', name:'ignore_typeset',
-                                   value:cfg.ignore_typeset, hint:TYPESETREGEXP}
+            {'checkbox',  0,6,9,1, label:'Ignore &ALL RULES ABOVE on signs', name:'ignore_signs',
+                                   value:cfg.ignore_signs, hint:SIGNS}
             ---------------------------------------------------------
             {'checkbox',  0,8,9,1, label:'&Missing style definitions', name:'check_missing_styles',
                                    value:cfg.check_missing_styles}
@@ -294,7 +372,5 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
         for c in *dlg
             for i,k in ipairs {'class','x','y','width','height'}
                 c[k] = c[i]
-
-        TYPESETREGEXP = re.compile TYPESETREGEXP
 
     execute!
