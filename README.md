@@ -9,7 +9,7 @@ Affects only the lines that do not have the \be or \blur tag.
 Adds user-specified tags to all/selected lines.<br>
 20 last used tags are remembered between sessions and may be re-applied (or just loaded) later.
 
-![Screenshot](http://img823.imageshack.us/img823/2214/3c01.png)
+![Screenshot](http://img542.imageshack.us/img542/8342/ufhi.png)
 
 ### [Blame](Blame.moon)
 Marks lines exceeding specified limits:
