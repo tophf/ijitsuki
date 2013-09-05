@@ -2,63 +2,90 @@ script_name = 'Add tags'
 script_description = 'Add tags to selected lines'
 require('utils')
 return aegisub.register_macro(script_name, script_description, function(subs, sel, act)
-  local scope, location, loadprompt, config, userconfigpath, execute, showdialog, makebuttons, makedialog, min, cfgserialize, cfgdeserialize
-  scope = {
-    all = 'All lines',
-    sel = 'Selected Lines',
-    curline = 'Current line'
-  }
-  location = {
-    line = 'Line start',
-    each_in = '{...',
-    each_out = '...}'
-  }
-  loadprompt = 'Do not use...'
-  config = {
-    all = false,
-    location = location.line,
-    scope = scope.sel,
-    used = {
-      '\\be1',
-      '\\fad(100,100)',
-      '\\fs',
-      '\\fscx',
-      '\\fscy',
-      '\\alpha&H80&'
-    }
-  }
-  config.text = config.used[1]
-  userconfigpath = aegisub.decode_path('?user/' .. script_name .. '.conf')
-  execute = function()
-    do
-      local f = io.open(userconfigpath, 'r')
-      if f then
-        local ok, _cfg = pcall(cfgdeserialize, f:read('*all'))
-        if ok and _cfg.scope then
-          config = _cfg
-        end
-        f:close()
-      end
+  local onetimeinit, execute, showdialog, makedialog, expandlist, min, cfgread, cfgwrite
+  local scope, location, loadprompt, btns, config, userconfigpath
+  onetimeinit = function()
+    if config then
+      return 
     end
+    scope = {
+      all = 'All lines',
+      sel = 'Selected lines',
+      cur = 'Current line'
+    }
+    location = expandlist({
+      {
+        line = 'Line start'
+      },
+      {
+        first_in = '{...'
+      },
+      {
+        each_in = '{... all'
+      },
+      {
+        first_out = '...}'
+      },
+      {
+        each_out = '...} all'
+      }
+    })
+    loadprompt = 'Previous items...'
+    btns = expandlist({
+      {
+        ok = '&Add / reuse chosen item'
+      },
+      {
+        load = 'Loa&d only'
+      },
+      {
+        cancel = '&Cancel'
+      }
+    })
+    config = {
+      all = false,
+      location = location.line,
+      scope = scope.sel,
+      used = {
+        '\\be1',
+        '\\fad(100,100)',
+        '\\fs',
+        '\\fscx',
+        '\\fscy',
+        '\\alpha&H80&'
+      }
+    }
+    config.text = config.used[1]
+    userconfigpath = aegisub.decode_path('?user/' .. script_name .. '.conf')
+  end
+  execute = function()
+    cfgread()
     showdialog()
+    cfgwrite()
+    local txt = config.text
     if config.scope:find('^' .. scope.sel) then
       config.scope = scope.sel
     end
-    local txt = config.text
-    local ovrnum
-    if config.all then
-      ovrnum = nil
-    else
-      ovrnum = 1
-    end
-    local ovrbound, ovrtext
+    local ovrbound, ovrtext, ovrnum
     local _exp_0 = config.location
     if location.line == _exp_0 then
-      ovrbound, ovrtext = '^', '{' .. txt .. '}'
+      ovrbound = '^(.*)$'
+      ovrtext = function(s)
+        if s:sub(1, 1) == '{' then
+          return s:gsub('^{(.-)}', '{%1' .. txt .. '}')
+        else
+          return '{' .. txt .. '}' .. s
+        end
+      end
+      ovrnum = 1
+    elseif location.first_in == _exp_0 then
+      ovrbound, ovrtext, ovrnum = '{', '{' .. txt, 1
+    elseif location.first_out == _exp_0 then
+      ovrbound, ovrtext, ovrnum = '}', txt .. '}', 1
     elseif location.each_in == _exp_0 then
-      ovrbound, ovrtext = '{', '{' .. txt
+      ovrbound, ovrtext, ovrnum = '{', '{' .. txt, nil
     elseif location.each_out == _exp_0 then
-      ovrbound, ovrtext = '}', txt .. '}'
+      ovrbound, ovrtext, ovrnum = '}', txt .. '}', nil
     end
     local processline
     processline = function(i, line)
@@ -81,7 +108,7 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
         local i = sel[_index_0]
         processline(i, subs[i])
       end
-    elseif scope.curline == _exp_1 then
+    elseif scope.cur == _exp_1 then
       return processline(act, subs[act])
     else
       local style = config.scope:gsub('^.*:%s+', '')
@@ -94,17 +121,6 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
   end
   showdialog = function()
     local cfg
-    local btns = makebuttons({
-      {
-        ok = '&Add'
-      },
-      {
-        load = 'Loa&d...'
-      },
-      {
-        cancel = '&Cancel'
-      }
-    })
     local dlg = makedialog()
     while true do
       local btn
@@ -155,31 +171,7 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
       end
       config.used = _accum_0
     end
-    table.insert(config.used, 1, config.text)
-    do
-      local f = io.open(userconfigpath, 'w')
-      if f then
-        f:write(cfgserialize(config, '\n'))
-        return f:close()
-      else
-        return aegisub.log('Error writing ' .. userconfigpath)
-      end
-    end
-  end
-  makebuttons = function(extendedlist)
-    local btns = {
-      __list = { },
-      __namedlist = { }
-    }
-    for _index_0 = 1, #extendedlist do
-      local L = extendedlist[_index_0]
-      for k, v in pairs(L) do
-        btns[k] = v
-        btns.__namedlist[k] = v
-        table.insert(btns.__list, v)
-      end
-    end
-    return btns
+    return table.insert(config.used, 1, config.text)
   end
   makedialog = function()
     local _styles = { }
@@ -192,15 +184,10 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
         break
       end
     end
-    local _location = {
-      location.line,
-      location.each_in,
-      location.each_out
-    }
     local _scopeitems = {
       scope.all,
       scope.sel .. ' (' .. tostring(#sel) .. ')',
-      scope.curline,
+      scope.cur,
       unpack(_styles)
     }
     local _scope
@@ -213,89 +200,47 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
     table.insert(_used, 1, loadprompt)
     local dlg = {
       {
-        'checkbox',
-        0,
-        0,
-        10,
-        1,
-        name = 'all',
-        value = config.all,
-        label = 'Add to all tag fields in line?'
-      },
-      {
-        'label',
-        0,
-        1,
-        1,
-        1,
-        label = 'Location:'
-      },
-      {
-        'dropdown',
-        1,
-        1,
-        13,
-        1,
-        name = 'location',
-        items = _location,
-        value = config.location,
-        hint = 'Add to line start, tag start or tag end'
-      },
-      {
-        'label',
-        0,
-        2,
-        1,
-        1,
-        label = 'Scope:'
-      },
-      {
-        'dropdown',
-        1,
-        2,
-        13,
-        1,
-        name = 'scope',
-        items = _scopeitems,
-        value = _scope,
-        hint = 'Selected lines or specific style'
-      },
-      {
-        'label',
-        0,
-        3,
-        1,
-        1,
-        label = 'Previous:'
-      },
-      {
-        'dropdown',
-        1,
-        3,
-        13,
-        1,
-        name = 'used',
-        items = _used,
-        value = loadprompt,
-        hint = 'Click "Add" to use the selected value .\nClick "Load" to load value into tag box'
-      },
-      {
-        'label',
-        0,
-        4,
-        1,
-        1,
-        label = 'Tags:'
-      },
-      {
         'textbox',
         0,
-        5,
-        14,
+        0,
+        6,
         4,
         name = 'text',
         text = config.text,
         hint = 'Input tags to add'
+      },
+      {
+        'dropdown',
+        0,
+        4,
+        1,
+        1,
+        name = 'location',
+        items = location.__list,
+        value = config.location,
+        hint = 'Point of insertion:\n\tline start\n\tovrblock start / end'
+      },
+      {
+        'dropdown',
+        1,
+        4,
+        3,
+        1,
+        name = 'scope',
+        items = _scopeitems,
+        value = _scope,
+        hint = 'Scope of action:\n\tall lines\n\tselected lines\n\tspecific style'
+      },
+      {
+        'dropdown',
+        4,
+        4,
+        2,
+        1,
+        name = 'used',
+        items = _used,
+        value = loadprompt,
+        hint = 'Select value to use instead of the typed text'
       }
     }
     for _index_0 = 1, #dlg do
@@ -311,6 +256,21 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
       end
     end
     return dlg
+  end
+  expandlist = function(extendedlist)
+    local list = {
+      __list = { },
+      __namedlist = { }
+    }
+    for _index_0 = 1, #extendedlist do
+      local LI = extendedlist[_index_0]
+      for k, v in pairs(LI) do
+        list[k] = v
+        list.__namedlist[k] = v
+        table.insert(list.__list, v)
+      end
+    end
+    return list
   end
   min = function(a, b)
     if a < b then
@@ -333,38 +293,59 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
       return _accum_0
     end)()
   end
-  cfgserialize = function(t)
-    local s = ''
-    for k, v in pairs(t) do
-      s = s .. (k .. ':' .. ((function()
-        if type(v) == 'table' then
-          return table.concat(v, '|')
-        else
-          return tostring(v)
+  cfgread = function()
+    do
+      local f = io.open(userconfigpath, 'r')
+      if f then
+        local splitkv
+        splitkv = function(kv)
+          local k, v = kv:match('^%s*(.-)%s*:%s*(.+)$')
+          if v:find('|') then
+            return k, v:split('|')
+          else
+            return k, v
+          end
         end
-      end)()) .. '\n')
-    end
-    return s
-  end
-  cfgdeserialize = function(s)
-    local splitkv
-    splitkv = function(kv)
-      local k, v = kv:match('^%s*(.-)%s*:%s*(.+)$')
-      if v:find('|') then
-        return k, v:split('|')
-      else
-        return k, v
+        local _cfg
+        do
+          local _tbl_0 = { }
+          local _list_0 = f:read('*all'):split('\n\r')
+          for _index_0 = 1, #_list_0 do
+            local kv = _list_0[_index_0]
+            local _key_0, _val_0 = splitkv(kv)
+            _tbl_0[_key_0] = _val_0
+          end
+          _cfg = _tbl_0
+        end
+        if _cfg and _cfg.scope then
+          config = _cfg
+        end
+        return f:close()
       end
     end
-    local _tbl_0 = { }
-    local _list_0 = s:split('\n\r')
-    for _index_0 = 1, #_list_0 do
-      local kv = _list_0[_index_0]
-      local _key_0, _val_0 = splitkv(kv)
-      _tbl_0[_key_0] = _val_0
-    end
-    return _tbl_0
   end
+  cfgwrite = function()
+    do
+      local f = io.open(userconfigpath, 'w')
+      if f then
+        local s = ''
+        for k, v in pairs(config) do
+          s = s .. (k .. ':' .. ((function()
+            if type(v) == 'table' then
+              return table.concat(v, '|')
+            else
+              return tostring(v)
+            end
+          end)()) .. '\n')
+        end
+        f:write(s, '\n')
+        return f:close()
+      else
+        return aegisub.log('Error writing ' .. userconfigpath)
+      end
+    end
+  end
+  onetimeinit()
   execute()
   return sel
 end)
