@@ -84,7 +84,7 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
   }
   SIGNS = table.concat({
     [[\{.*?\\(]],
-    'pos|move|an|org|',
+    'pos|move|an|a|org|',
     'frx|fry|frz|',
     'fax|fay|',
     'k|kf|ko|K|',
@@ -194,6 +194,8 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
         return a_t < b_t or (a_t == b_t and a.i < b.i)
       end)
     end
+    local video_loaded = aegisub.frame_from_ms(0)
+    local check_max_lines_enabled = cfg.check_max_lines and playres.x > 0 and video_loaded
     local tosel
     do
       local _accum_0 = { }
@@ -209,8 +211,22 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
     if cfg.log_errors or not (cfg.list_errors or cfg.select_errors) then
       aegisub.log('\n%d lines blamed.\n', #tosel)
     end
-    if playres.x <= 0 then
-      aegisub.log('%s %s', "Max screen lines checking not performed", "Please, load video file and specify correct PlayRes in script's properties!")
+    if cfg.check_max_lines and not check_max_lines_enabled then
+      local err1
+      if not (video_loaded) then
+        err1 = "load video file"
+      end
+      local err2
+      if not (playres.x > 0) then
+        err2 = "specify correct PlayRes in script's properties!"
+      end
+      aegisub.log('%s. %s%s%s%s.', "Max screen lines checking not performed", "Please, ", err1 or "", (function()
+        if err1 and err2 then
+          return " and "
+        else
+          return "", err2 or ""
+        end
+      end)())
     end
     aegisub.progress.set(100)
     if cfg.select_errors then
@@ -244,7 +260,7 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
         if cfg.check_max_chars_per_sec and math.floor(cps) > cfg.max_chars_per_sec then
           msg = msg .. (' %dcps'):format(cps)
         end
-        if cfg.check_max_lines and style and playres.x > 0 then
+        if check_max_lines_enabled and style then
           local numlines = 0
           if METRICS.q2_re:match(line.text) then
             local s = line.text:gsub('\\N%s*{.-}%s*', '')

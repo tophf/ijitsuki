@@ -60,7 +60,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
 
     SIGNS = table.concat {
             [[\{.*?\\(]]
-            'pos|move|an|org|'
+            'pos|move|an|a|org|'
             'frx|fry|frz|'
             'fax|fay|'
             'k|kf|ko|K|'
@@ -115,14 +115,18 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
                 a_t, b_t = a.line.start_time, b.line.start_time
                 a_t < b_t or (a_t == b_t and a.i < b.i)
 
+        video_loaded = aegisub.frame_from_ms(0)
+        check_max_lines_enabled = cfg.check_max_lines and playres.x > 0 and video_loaded
         tosel = [v.i for num,v in ipairs lines when blameline num,v,lines]
 
         if cfg.log_errors or not (cfg.list_errors or cfg.select_errors)
             aegisub.log '\n%d lines blamed.\n',#tosel
-        if playres.x <= 0
-            aegisub.log '%s %s',
+        if cfg.check_max_lines and not check_max_lines_enabled
+            err1 = "load video file" unless video_loaded
+            err2 = "specify correct PlayRes in script's properties!" unless playres.x > 0
+            aegisub.log '%s. %s%s%s%s.',
                 "Max screen lines checking not performed",
-                "Please, load video file and specify correct PlayRes in script's properties!"
+                "Please, ",err1 or "",if err1 and err2 then " and " else "",err2 or ""
         aegisub.progress.set 100
 
         tosel if cfg.select_errors
@@ -148,7 +152,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
                 if cfg.check_max_chars_per_sec and math.floor(cps) > cfg.max_chars_per_sec
                     msg ..= (' %dcps')\format cps
 
-                if cfg.check_max_lines and style and playres.x > 0
+                if check_max_lines_enabled and style
                     numlines = 0
                     if METRICS.q2_re\match .text
                         s = .text\gsub '\\N%s*{.-}%s*',''
