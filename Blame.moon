@@ -121,12 +121,12 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
 
         if cfg.log_errors or not (cfg.list_errors or cfg.select_errors)
             aegisub.log '\n%d lines blamed.\n',#tosel
-        if cfg.check_max_lines and not check_max_lines_enabled
+        if cfg.check_max_lines and (playres.x <= 0 or not video_loaded)
             err1 = "load video file" unless video_loaded
             err2 = "specify correct PlayRes in script's properties!" unless playres.x > 0
             aegisub.log '%s. %s%s%s%s.',
-                "Max screen lines checking not performed",
-                "Please, ",err1 or "",if err1 and err2 then " and " else "",err2 or ""
+                'Max screen lines checking not performed',
+                'Please, ',err1 or '',err1 and err2 and ' and ' or '',err2 or ''
         aegisub.progress.set 100
 
         tosel if cfg.select_errors

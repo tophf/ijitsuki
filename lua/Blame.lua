@@ -211,7 +211,7 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
     if cfg.log_errors or not (cfg.list_errors or cfg.select_errors) then
       aegisub.log('\n%d lines blamed.\n', #tosel)
     end
-    if cfg.check_max_lines and not check_max_lines_enabled then
+    if cfg.check_max_lines and (playres.x <= 0 or not video_loaded) then
       local err1
       if not (video_loaded) then
         err1 = "load video file"
@@ -220,13 +220,7 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
       if not (playres.x > 0) then
         err2 = "specify correct PlayRes in script's properties!"
       end
-      aegisub.log('%s. %s%s%s%s.', "Max screen lines checking not performed", "Please, ", err1 or "", (function()
-        if err1 and err2 then
-          return " and "
-        else
-          return "", err2 or ""
-        end
-      end)())
+      aegisub.log('%s. %s%s%s%s.', 'Max screen lines checking not performed', 'Please, ', err1 or '', err1 and err2 and ' and ' or '', err2 or '')
     end
     aegisub.progress.set(100)
     if cfg.select_errors then
