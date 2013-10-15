@@ -55,7 +55,7 @@ end
 return aegisub.register_macro(script_name, script_description, function(subs, sel)
   local SAVE, DEFAULTS, SIGNS, SIGNSre, METRICS, execute, blameline, should_ignore_signs, set_style, calc_numlines, max, cfgserialize, cfgdeserialize, cfgread, cfgwrite, init
   local cfg, cfgsource, btns, dlg, userconfigpath
-  local playres, styles, cfglineindices, dialogfirst, overlap_end
+  local playres, styles, cfglineindices, dialogfirst, overlap_end, check_max_lines_enabled
   SAVE = {
     no = "Apply and don't save settings",
     script = "Apply and save settings in script",
@@ -195,7 +195,7 @@ return aegisub.register_macro(script_name, script_description, function(subs, se
       end)
     end
     local video_loaded = aegisub.frame_from_ms(0)
-    local check_max_lines_enabled = cfg.check_max_lines and playres.x > 0 and video_loaded
+    check_max_lines_enabled = cfg.check_max_lines and playres.x > 0 and video_loaded
     local tosel
     do
       local _accum_0 = { }

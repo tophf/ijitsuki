@@ -33,7 +33,7 @@ for v in *{{-1,'previous'},{1,'next'}}
 aegisub.register_macro script_name, script_description, (subs, sel) ->
     local *
     local cfg, cfgsource, btns, dlg, userconfigpath
-    local playres, styles, cfglineindices, dialogfirst, overlap_end
+    local playres, styles, cfglineindices, dialogfirst, overlap_end, check_max_lines_enabled
 
     SAVE = {
         no:         "Apply and don't save settings"
