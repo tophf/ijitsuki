@@ -1,4 +1,4 @@
-﻿export script_name = "Remove unused styles"
+export script_name = "Remove unused styles"
 export script_description = "Removes styles not referenced in dialogue lines (comment lines are ignored)"
 
 aegisub.register_macro script_name, script_description, (subs, sel) ->

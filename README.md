@@ -1,4 +1,4 @@
-[Aegisub](https://github.com/Aegisub/Aegisub) moonscript macros
+[Aegisub 3](https://github.com/Aegisub/Aegisub) moonscript macros
 ========
 
 ### [Add edgeblur](Add edgeblur.moon)
@@ -17,7 +17,7 @@ Marks lines exceeding specified limits:
 * CPS - characters per second - *excessively verbose lines.*
 * line count - *3-liners!!1*
 * overlaps - *TPP may easily produce those*
-* missing styles - *lines using non-existant styles will look wrong*
+* missing styles - *lines using non-existent styles will look wrong*
 
 ![Screenshot](http://img801.imageshack.us/img801/1775/p620.png)
 
@@ -34,7 +34,7 @@ Shifts position tags in selected lines (\pos,\move,\org,\clip).
 
 ### [Remove unused styles](Remove unused styles.moon)
 Removes styles not referenced in dialogue lines (comment lines are ignored).<br>
-Also reports orphaned lines that reference a non-existant style.
+Also reports lines that reference a non-existent style ("orphaned lines").
 
 ![Screenshot](http://img203.imageshack.us/img203/6941/eas7.png)
 
