@@ -54,8 +54,11 @@ Select/navigate in the subtitle grid.
 Assigning hotkeys makes these _really_ handy.
 NB. You can redefine the built-in Shift-Home/End hotkeys with 'Select till start/end' macros in the 'Subtitle Grid' section of Options->Hotkeys.
 
-### [Split after 1st frame](Split after 1st frame.moon)
-Prevents disappearing of subtitles, that start exactly at video chapter mark, when Jump-to-next-chapter hotkey/button is used in a video player.
+### [Splitter](Splitter.moon)
+
+* **Split by \\N** - split dialogues like -Person\N-Another person, also trim spaces/hyphens at start and estimate durations
+* **Split 1 frame** - split after the 1st frame to prevent disappearing of subtitles, that start exactly at video chapter mark, when Jump-to-next-chapter hotkey/button is used in a video player.
+* **Split 1 frame on chapters** - same as above but reads a user specified chapters file and automatically fixes the affected lines.
 
 ### [Wrap in curly braces](Wrap in curly braces.moon)
 Wraps all/selected lines in {}.<br>
