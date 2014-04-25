@@ -37,55 +37,55 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
         .clip = {.clip_x, .clip_y, .clip_x, .clip_y}
 
     arraysum = (arr, delta) ->
-    	unpack [delta[i] + tonumber arr[i] for i=1,#arr]
+        unpack [delta[i] + tonumber arr[i] for i=1,#arr]
 
     drawingsum = (s, dx, dy) ->
-    	s\gsub '(-?%d+)%s*(-?%d+)',
-        	(x,y) -> (math.floor x + dx + 0.5)..' '..(math.floor y + dy + 0.5)
+        s\gsub '(-?%d+)%s*(-?%d+)',
+            (x,y) -> (math.floor x + dx + 0.5)..' '..(math.floor y + dy + 0.5)
 
     digit = '(%s*%-?[%d%.]+%s*)'
     replacer = {
-    	{	'\\pos'
-    		'\\pos%('..digit..','..digit..'%)'
-    		(x,y) -> ('\\pos(%g,%g)')\format x + cfg.pos_x, y + cfg.pos_y
-    	}
-    	{	'\\move'
-    		'\\move%('..digit..','..digit..','..digit..','..digit
-    		(x,y,x2,y2) -> ('\\move(%g,%g,%g,%g')\format arraysum {x,y,x2,y2}, cfg.move
-    	}
-    	{	'\\org'
-    		'\\org%('..digit..','..digit..'%)'
-    		(x,y) -> ('\\org(%g,%g)')\format x + cfg.org_x, y + cfg.org_y
-    	}
-    	{	'\\i?clip'
-    		'(\\i?clip)%('..digit..','..digit..','..digit..','..digit..'%)'
-	        (tag,x,y,x2,y2) -> ('%s(%g,%g,%g,%g)')\format tag, arraysum {x,y,x2,y2}, cfg.clip
-	    }
-    	{	'\\i?clip'
-    		'(\\i?clip%(%s*%d*%s*%,?)([mlbsc%s%d%-]+)%)'
-	        (tag,numbers) -> tag..drawingsum numbers, cfg.clip_x, cfg.clip_y
-	    }
-    	{	'\\p%d'
-    		'({.-\\p%d+.-})([mlbsc%s%d%-]+)'
-	        (tag,numbers) -> tag..drawingsum numbers, cfg.p_x, cfg.p_y
-	    }
-	}
+        {   '\\pos'
+            '\\pos%('..digit..','..digit..'%)'
+            (x,y) -> ('\\pos(%g,%g)')\format x + cfg.pos_x, y + cfg.pos_y
+        }
+        {   '\\move'
+            '\\move%('..digit..','..digit..','..digit..','..digit
+            (x,y,x2,y2) -> ('\\move(%g,%g,%g,%g')\format arraysum {x,y,x2,y2}, cfg.move
+        }
+        {   '\\org'
+            '\\org%('..digit..','..digit..'%)'
+            (x,y) -> ('\\org(%g,%g)')\format x + cfg.org_x, y + cfg.org_y
+        }
+        {   '\\i?clip'
+            '(\\i?clip)%('..digit..','..digit..','..digit..','..digit..'%)'
+            (tag,x,y,x2,y2) -> ('%s(%g,%g,%g,%g)')\format tag, arraysum {x,y,x2,y2}, cfg.clip
+        }
+        {   '\\i?clip'
+            '(\\i?clip%(%s*%d*%s*%,?)([mlbsc%s%d%-]+)%)'
+            (tag,numbers) -> tag..drawingsum numbers, cfg.clip_x, cfg.clip_y
+        }
+        {   '\\p%d'
+            '({.-\\p%d+.-})([mlbsc%s%d%-]+)'
+            (tag,numbers) -> tag..drawingsum numbers, cfg.p_x, cfg.p_y
+        }
+    }
 
     changed = false
 
     for k,i in ipairs sel
-    	aegisub.progress.set k/#sel*100
+        aegisub.progress.set k/#sel*100
 
         line = subs[i]
         s = line.text
 
         for r in *replacer
-       		s = s\gsub r[2],r[3] if s\find r[1]
+            s = s\gsub r[2],r[3] if s\find r[1]
 
         if line.text != s
-        	changed = true
-	        line.text = s
-	        subs[i] = line
+            changed = true
+            line.text = s
+            subs[i] = line
 
     if not changed
         aegisub.log 'Nothing was changed.'
