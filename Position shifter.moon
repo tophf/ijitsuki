@@ -33,14 +33,43 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
     aegisub.cancel! if not btn or btn==btns.cancel
 
     with cfg
-        .pos  = {.pos_x, .pos_y}
-        .org  = {.org_x, .org_y}
         .move = {.move_x1, .move_y1, .move_x2, .move_y2}
         .clip = {.clip_x, .clip_y, .clip_x, .clip_y}
-        .p    = {.p_x, .p_y}
 
-    float2str = (f) -> string.format '%g',f
-    arraysum2str = (arr1str,arr2) -> unpack [float2str arr2[i] + tonumber arr1str[i] for i=1,#arr1str]
+    arraysum = (arr, delta) ->
+    	unpack [delta[i] + tonumber arr[i] for i=1,#arr]
+
+    drawingsum = (s, dx, dy) ->
+    	s\gsub '(-?%d+)%s*(-?%d+)',
+        	(x,y) -> (math.floor x + dx + 0.5)..' '..(math.floor y + dy + 0.5)
+
+    digit = '(%s*%-?[%d%.]+%s*)'
+    replacer = {
+    	{	'\\pos'
+    		'\\pos%('..digit..','..digit..'%)'
+    		(x,y) -> ('\\pos(%g,%g)')\format x + cfg.pos_x, y + cfg.pos_y
+    	}
+    	{	'\\move'
+    		'\\move%('..digit..','..digit..','..digit..','..digit
+    		(x,y,x2,y2) -> ('\\move(%g,%g,%g,%g')\format arraysum {x,y,x2,y2}, cfg.move
+    	}
+    	{	'\\org'
+    		'\\org%('..digit..','..digit..'%)'
+    		(x,y) -> ('\\org(%g,%g)')\format x + cfg.org_x, y + cfg.org_y
+    	}
+    	{	'\\i?clip'
+    		'(\\i?clip)%('..digit..','..digit..','..digit..','..digit..'%)'
+	        (tag,x,y,x2,y2) -> ('%s(%g,%g,%g,%g)')\format tag, arraysum {x,y,x2,y2}, cfg.clip
+	    }
+    	{	'\\i?clip'
+    		'(\\i?clip%(%s*%d*%s*%,?)([mlbsc%s%d%-]+)%)'
+	        (tag,numbers) -> tag..drawingsum numbers, cfg.clip_x, cfg.clip_y
+	    }
+    	{	'\\p%d'
+    		'({.-\\p%d+.-})([mlbsc%s%d%-]+)'
+	        (tag,numbers) -> tag..drawingsum numbers, cfg.p_x, cfg.p_y
+	    }
+	}
 
     changed = false
 
@@ -50,31 +79,13 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
         line = subs[i]
         s = line.text
 
-        s = s\gsub '\\pos%((%s*%-?[%d%.]+%s*),(%s*%-?[%d%.]+%s*)%)',
-            (x,y) -> ('\\pos(%s,%s)')\format arraysum2str({x,y}, cfg.pos)
+        for r in *replacer
+       		s = s\gsub r[2],r[3] if s\find r[1]
 
-        s = s\gsub '\\move%((%s*%-?[%d%.]+%s*),(%s*%-?[%d%.]+%s*),(%s*%-?[%d%.]+%s*),(%s*%-?[%d%.]+%s*)',
-            (x,y,x2,y2) -> ('\\move(%s,%s,%s,%s')\format arraysum2str({x,y,x2,y2}, cfg.move)
-
-        s = s\gsub '\\org%((%s*%-?[%d%.]+%s*),(%s*%-?[%d%.]+%s*)%)',
-            (x,y) -> ('\\org(%s,%s)')\format arraysum2str({x,y}, cfg.org)
-
-        s = s\gsub '\\(i?clip)%((%s*%-?[%d%.]+%s*),(%s*%-?[%d%.]+%s*),(%s*%-?[%d%.]+%s*),(%s*%-?[%d%.]+%s*)%)',
-            (tag,x,y,x2,y2) -> ('\\%s(%s,%s,%s,%s)')\format tag, arraysum2str({x,y,x2,y2}, cfg.clip)
-
-        s = s\gsub '\\(i?clip%(%s*%d*%s*%,?)([mlbsc%s%d%-]+)%)',
-            (tag,numbers) -> ('\\%s%s)')\format tag,
-                numbers\gsub '(-?%d+)%s*(-?%d+)',
-                    (x,y) -> ('%d %d')\format arraysum2str({x,y}, cfg.clip)
-
-        s = s\gsub '({.-\\p%d+.-})([mlbsc%s%d%-]+)',
-            (tag,numbers) -> ('%s%s)')\format tag,
-                numbers\gsub '(-?%d+)%s*(-?%d+)',
-                    (x,y) -> ('%d %d')\format arraysum2str({x,y}, cfg.p)
-
-        changed = true if line.text != s
-        line.text = s
-        subs[i] = line
+        if line.text != s
+        	changed = true
+	        line.text = s
+	        subs[i] = line
 
     if not changed
         aegisub.log 'Nothing was changed.'

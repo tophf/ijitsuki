@@ -29,8 +29,8 @@ In the first case you can navigate between such lines using two supplementary ma
 Tip: assign handy hotkeys in Options like Ctrl-Up and Down arrows, for example.
 
 ### [Position shifter](Position shifter.moon)
-Shifts position tags in selected lines (\pos,\move,\org,\clip).
-![Screenshot](http://img407.imageshack.us/img407/3419/2fs7.png)
+Shifts position tags in selected lines (\pos,\move,\org,\clip,\p).
+![Screenshot](http://i.imgur.com/MGzi22j.png)
 
 ### [Remove unused styles](Remove unused styles.moon)
 Removes styles not referenced in dialogue lines (comment lines are ignored).<br>
