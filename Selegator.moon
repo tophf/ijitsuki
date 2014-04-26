@@ -32,6 +32,7 @@ aegisub.register_macro "Current style -> last in block", "", (subs, sel, act) ->
     for i = act+1,#subs
         if subs[i].style!=lookforstyle
             return {i-1}
+    {#subs}
 
 aegisub.register_macro "Current style -> select block", "", (subs, sel, act) ->
     lookforstyle = subs[act].style
