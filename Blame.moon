@@ -8,8 +8,8 @@ require 'utils'
 re = require 'aegisub.re'
 
 for v in *{{-1,'previous'},{1,'next'}}
-    goto = 'Go to '..v[2]
-    aegisub.register_macro script_name..': '..goto, goto..' blemished line',
+    name = 'Go to '..v[2]
+    aegisub.register_macro script_name..': '..name, name..' blemished line',
         (subs, sel, act) ->
             step = v[1]
             dest = if step < 0 then 1 else #subs
