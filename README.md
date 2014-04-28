@@ -28,8 +28,15 @@ In the first case you can navigate between such lines using two supplementary ma
 
 Tip: assign handy hotkeys in Options like Ctrl-Up and Down arrows, for example.
 
+### [JumpScroll](JumpScroll.moon)
+Saves/loads subtitle grid scrollbar position.<br/>
+Requires Aegisub with LuaJIT and win32/64 (r8238 or v3.2 and newer).<br/>
+Number of "memory spots" for positions is set in the macro, *jumpscroll_max = 3* by default.<br/>
+Assign hotkeys to use it effectively e.g. Ctrl-F1...F3 to save, Shift-F1...F3 to jump.<br/>
+Currently it doesn't save these positions to a file so it's session-only.
+
 ### [Position shifter](Position shifter.moon)
-Shifts position tags in selected lines (\pos,\move,\org,\clip,\p).
+Shifts position tags in selected lines (\pos,\move,\org,\clip,\p).<br/>
 ![Screenshot](http://i.imgur.com/MGzi22j.png)
 
 ### [Remove unused styles](Remove unused styles.moon)
