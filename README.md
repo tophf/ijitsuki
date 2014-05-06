@@ -23,8 +23,8 @@ Marks lines exceeding specified limits:
 
 Puts results into the Effect field (1), and/or selects lines (2), and/or displays a mini log (3).<br>
 In the first case you can navigate between such lines using two supplementary macros:
-* **Blame: Go to previous**
-* **Blame: Go to next**
+* **Go to previous**
+* **Go to next**
 
 Tip: assign handy hotkeys in Options like Ctrl-Up and Down arrows, for example.
 
@@ -49,12 +49,12 @@ Also reports lines that reference a non-existent style ("orphaned lines").
 Select/navigate in the subtitle grid.
 
 * Current style related:
- * **Current style -> select all** - select all lines with the same style as the current line
- * **Current style -> previous** - go to previous line with the same style as the current line
- * **Current style -> next** - go to next line with the same style as the current line
- * **Current style -> first in block** - go to the first line in current block of lines with the same style
- * **Current style -> last in block** - go to the last line in current block of lines with the same style
- * **Current style -> select block** - select all lines in current block of lines with the same style
+ * **Current style/select all** - select all lines with the same style as the current line
+ * **Current style/previous** - go to previous line with the same style as the current line
+ * **Current style/next** - go to next line with the same style as the current line
+ * **Current style/first in block** - go to the first line in current block of lines with the same style
+ * **Current style/last in block** - go to the last line in current block of lines with the same style
+ * **Current style/select block** - select all lines in current block of lines with the same style
 * **Select till start** - unlike built-in Shift-Home, it preserves the active line
 * **Select till end** - unlike built-in Shift-End, it preserves the active line
 

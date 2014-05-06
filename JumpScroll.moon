@@ -44,11 +44,11 @@ load_scroll_pos = (i) ->
     update_statusbar i, false
 
 for i=1,jumpscroll_max
-    aegisub.register_macro 'JumpScroll: save #'..i,
+    aegisub.register_macro script_name..'/save/'..i,
         'Remember subtitle grid scrollbar position as #'..i,
         -> save_scroll_pos i
 
 for i=1,jumpscroll_max
-    aegisub.register_macro 'JumpScroll: load #'..i,
+    aegisub.register_macro script_name..'/load/'..i,
         'Scroll to subtitle grid scrollbar position previously saved in #'..i,
         -> load_scroll_pos i

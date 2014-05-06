@@ -1,7 +1,10 @@
 export script_name = 'Splitter'
 export script_description = 'Splits lines'
 
-aegisub.register_macro 'Split by \\N', '..and trim spaces/hyphens at start', (subs, sel) ->
+aegisub.register_macro script_name..'/Split by \\N',
+    '..and trim spaces/hyphens at start',
+    (subs, sel) ->
+
     offs = 0
     for i,j in ipairs sel
         j += offs
@@ -29,7 +32,10 @@ aegisub.register_macro 'Split by \\N', '..and trim spaces/hyphens at start', (su
                 break if txt==''
             offs -= 1
 
-aegisub.register_macro 'Split 1 frame', 'Splits selected lines after 1st frame', (subs, sel, active) ->
+aegisub.register_macro script_name..'/Split 1 frame',
+    'Splits selected lines after 1st frame',
+    (subs, sel, active) ->
+
     if not aegisub.frame_from_ms(0)
         aegisub.log 'Load video first!'
         aegisub.cancel()
@@ -48,7 +54,10 @@ aegisub.register_macro 'Split 1 frame', 'Splits selected lines after 1st frame',
             subs[j+1] = l
     sel
 
-aegisub.register_macro 'Split 1 frame on chapters', 'Splits 1st frame on lines starting at chapter mark', (subs, sel, active) ->
+aegisub.register_macro script_name..'/Split 1 frame on chapters',
+    'Splits 1st frame on lines starting at chapter mark',
+    (subs, sel, active) ->
+
     if not aegisub.frame_from_ms 0
         aegisub.log 'Load video first!'
         aegisub.cancel!
@@ -117,5 +126,5 @@ aegisub.register_macro 'Split 1 frame on chapters', 'Splits 1st frame on lines s
     aegisub.log '\nChapters split: '..#to_split..'\n'
     aegisub.log table.concat [L.log for L in *to_split],'\n'
 
-    -- select results
+    -- select the results
     [L.i+k-1 for k,L in pairs to_split]

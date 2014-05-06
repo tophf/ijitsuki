@@ -7,30 +7,7 @@ export script_description = table.concat {
 require 'utils'
 re = require 'aegisub.re'
 
-for v in *{{-1,'previous'},{1,'next'}}
-    name = 'Go to '..v[2]
-    aegisub.register_macro script_name..': '..name, name..' blemished line',
-        (subs, sel, act) ->
-            step = v[1]
-            dest = if step < 0 then 1 else #subs
-            is_blemished = re.compile table.concat {
-                    [[(?:^|\s)]]
-                    '(?:'
-                    [[(?:short|long)[\d.]+s]]
-                    [[|\d+(?:cps|lines)]]
-                    [[|ovr\d+?|nostyle]]
-                    ')'
-                    [[(?:\s|$)]]
-                }, ''
-            for i = act+step, dest, step
-                with line = subs[i]
-                    if line.class=='dialogue'
-                        if not line.comment
-                            if is_blemished\match line.effect
-                                return {i}
-            aegisub.cancel!
-
-aegisub.register_macro script_name, script_description, (subs, sel) ->
+aegisub.register_macro script_name..'/'..script_name, script_description, (subs, sel) ->
     local *
     local cfg, cfgsource, btns, dlg, userconfigpath
     local playres, styles, cfglineindices, dialogfirst, overlap_end, check_max_lines_enabled
@@ -378,3 +355,28 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
                 c[k] = c[i]
 
     execute!
+
+-------------------------------------------------------------------------
+
+for v in *{{-1,'previous'},{1,'next'}}
+    name = 'Go to '..v[2]
+    aegisub.register_macro script_name..'/'..name, name..' blemished line',
+        (subs, sel, act) ->
+            step = v[1]
+            dest = if step < 0 then 1 else #subs
+            is_blemished = re.compile table.concat {
+                    [[(?:^|\s)]]
+                    '(?:'
+                    [[(?:short|long)[\d.]+s]]
+                    [[|\d+(?:cps|lines)]]
+                    [[|ovr\d+?|nostyle]]
+                    ')'
+                    [[(?:\s|$)]]
+                }, ''
+            for i = act+step, dest, step
+                with line = subs[i]
+                    if line.class=='dialogue'
+                        if not line.comment
+                            if is_blemished\match line.effect
+                                return {i}
+            aegisub.cancel!
