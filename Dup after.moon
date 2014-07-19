@@ -11,7 +11,7 @@ dup = (subs, sel) ->
 
 aegisub.register_macro script_name, script_description, (subs, sel) ->
     for i,line in pairs dup(subs,sel)
-        subs.insert sel[i] + i - 1, line
+        subs.insert sel[i] + i, line
     [k+v for k,v in pairs sel]
 
 aegisub.register_macro script_name..' and group',
