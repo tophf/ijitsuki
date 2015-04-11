@@ -67,6 +67,10 @@ NB. You can redefine the built-in Shift-Home/End hotkeys with 'Select till start
 * **Split 1 frame** - split after the 1st frame to prevent disappearing of subtitles, that start exactly at video chapter mark, when Jump-to-next-chapter hotkey/button is used in a video player.
 * **Split 1 frame on chapters** - same as above but reads a user specified chapters file and automatically fixes the affected lines.
 
+### [Title Case](Title Case.moon)
+
+Applies English Title Case (maintains lower case on prepositions and other auxiliary words) to the selected lines.
+
 ### [Wrap in curly braces](Wrap in curly braces.moon)
 Wraps all/selected lines in {}.<br>
 Helps translating subtitles since the text in {} isn't shown on video.<br>
