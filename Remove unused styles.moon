@@ -47,11 +47,11 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
         for i = s2,s1,-1
             style = subs[i].name
             with occurences = used[style]
-                if .n > 0
+                if occurences and .n > 0
                     logUsed = ("  %s: %d%s\n%s")\format style, .n, list_spans(.lines,"\t@ %s",3), logUsed
                     nUsed += 1
                 else
-                    logDel = ("  %s\t: DELETED\n%s")\format style, logDel
+                    logDel = ("  %s\t: DELETED%s\n%s")\format style, occurences and '' or ' (duplicate definition)', logDel
                     nDel += 1
                     subs.delete i
             used[style] = nil
