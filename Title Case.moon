@@ -12,7 +12,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
             linestart = true
             prevblockpunct = ''
 
-            s = .text\gsub('\\N','\n')\gsub('\\n','\r')
+            s = .text\gsub('\\N','\n')\gsub('\\n','\r')\gsub('\\h','\a')
 
             s = ('{}'..s)\gsub '(%b{})([^{]+)', (tag, text) ->
                 blockstart = true
@@ -30,7 +30,7 @@ aegisub.register_macro script_name, script_description, (subs, sel) ->
 
                     punct..first..word\sub(#first + 1)\utf8lower!
 
-            s = s\sub(3)\gsub('\n','\\N')\gsub('\r','\\n')
+            s = s\sub(3)\gsub('\n','\\N')\gsub('\r','\\n')\gsub('\a','\\h')
             if s != .text
                 .text = s
                 subs[i] = line
