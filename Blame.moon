@@ -20,11 +20,13 @@ aegisub.register_macro script_name..'/'..script_name, script_description, (subs,
     }
 
     DEFAULTS = {
+        check_negative_duration:true,
         check_min_duration:true,      min_duration:1.0
         ignore_short_if_cps_ok:true
         check_max_duration:true,      max_duration:10.0
         check_max_lines:true,         max_lines:2
         check_max_chars_per_sec:true, max_chars_per_sec:25
+        check_max_chars:true,         max_chars:100
         check_missing_styles:true
         check_overlaps:true,          list_only_first_overlap:true
         ignore_signs:true
@@ -119,6 +121,9 @@ aegisub.register_macro script_name..'/'..script_name, script_description, (subs,
             style = styles[.style] or styles['Default'] or styles['*Default']
 
             if not should_ignore_signs line
+                if duration < 0 and cfg.check_negative_duration
+                    msg   = (' negative%gs')\format duration
+
                 if cfg.check_min_duration and duration < cfg.min_duration
                     if not cfg.ignore_short_if_cps_ok or math.floor(cps) > cfg.max_chars_per_sec
                         msg   = (' short%gs')\format duration
@@ -128,6 +133,9 @@ aegisub.register_macro script_name..'/'..script_name, script_description, (subs,
 
                 if cfg.check_max_chars_per_sec and math.floor(cps) > cfg.max_chars_per_sec
                     msg ..= (' %dcps')\format cps
+
+                if cfg.check_max_chars and length > cfg.max_chars
+                    msg ..= (' +%dchars')\format (length - cfg.max_chars)
 
                 if check_max_lines_enabled and style
                     numlines = 0
@@ -308,46 +316,53 @@ aegisub.register_macro script_name..'/'..script_name, script_description, (subs,
         with SAVE
             .list = {.no, .script, .user, .removeonly}
 
-        --accels: gcnixlhofAmsrwe
+        --accels: g(go) c(cancel) vnixlhdofAmsrwe
         dlg = {
-            {'checkbox',  0,0,7,1, label:'Mi&n duration, seconds:', name:'check_min_duration',
-                                   value:cfg.check_min_duration}
-            {'floatedit', 7,0,2,1,  name:'min_duration', value:cfg.min_duration, min:0, max:10, step:0.1}
+            {'checkbox',  0,0,7,1, label:'Negati&ve duration', name:'check_negative_duration',
+                                   value:cfg.check_negative_duration}
             ---------------------------------------------------------
-            {'checkbox',  0,1,9,1, label:'&Ignore if CPS is ok', name:'ignore_short_if_cps_ok',
+            {'checkbox',  0,1,7,1, label:'Mi&n duration, seconds:', name:'check_min_duration',
+                                   value:cfg.check_min_duration}
+            {'floatedit', 7,1,2,1,  name:'min_duration', value:cfg.min_duration, min:0, max:10, step:0.1}
+            ---------------------------------------------------------
+            {'checkbox',  3,2,7,1, label:'&Ignore if CPS is ok', name:'ignore_short_if_cps_ok',
                                    value:cfg.ignore_short_if_cps_ok}
             ---------------------------------------------------------
-            {'checkbox',  0,2,7,1, label:'Ma&x duration, seconds:', name:'check_max_duration',
+            {'checkbox',  0,3,7,1, label:'Ma&x duration, seconds:', name:'check_max_duration',
                                    value:cfg.check_max_duration}
-            {'floatedit', 7,2,2,1,  name:'max_duration', value:cfg.max_duration, min:0, max:100, step:1}
+            {'floatedit', 7,3,2,1,  name:'max_duration', value:cfg.max_duration, min:0, max:100, step:1}
             ---------------------------------------------------------
-            {'checkbox',  0,3,7,1, label:'Max screen &lines per subtitle', name:'check_max_lines',
+            {'checkbox',  0,5,7,1, label:'Max screen &lines per subtitle', name:'check_max_lines',
                                    value:cfg.check_max_lines,
                                     hint:'Requires 1) PlayRes in script header 2) all used fonts installed'}
-            {'intedit',   7,3,2,1,  name:'max_lines', value:cfg.max_lines, min:1, max:10}
+            {'intedit',   7,5,2,1,  name:'max_lines', value:cfg.max_lines, min:1, max:10}
             ---------------------------------------------------------
-            {'checkbox',  0,4,7,1, label:'Max c&haracters per second', name:'check_max_chars_per_sec',
+            {'checkbox',  0,6,7,1, label:'Max c&haracters per second', name:'check_max_chars_per_sec',
                                    value:cfg.check_max_chars_per_sec}
-            {'intedit',   7,4,2,1,  name:'max_chars_per_sec', value:cfg.max_chars_per_sec, min:1, max:100}
+            {'intedit',   7,6,2,1,  name:'max_chars_per_sec', value:cfg.max_chars_per_sec, min:1, max:100}
             ---------------------------------------------------------
-            {'checkbox',  0,5,3,1, label:'&Overlaps:', name:'check_overlaps', value:cfg.check_overlaps}
-            {'checkbox',  3,5,5,1, label:'...report only the &first in group', name:'list_only_first_overlap',
+            {'checkbox',  0,7,7,1, label:'Max characters per &dialog event', name:'check_max_chars',
+                                   value:cfg.check_max_chars}
+            {'intedit',   7,7,2,1,  name:'max_chars', value:cfg.max_chars, min:1, max:1000}
+            ---------------------------------------------------------
+            {'checkbox',  0,9,3,1, label:'&Overlaps:', name:'check_overlaps', value:cfg.check_overlaps}
+            {'checkbox',  3,9,5,1, label:'...report only the &first in group', name:'list_only_first_overlap',
                                    value:cfg.list_only_first_overlap}
             ---------------------------------------------------------
-            {'checkbox',  0,6,9,1, label:'Ignore &ALL RULES ABOVE on signs', name:'ignore_signs',
+            {'checkbox',  0,10,9,1, label:'Ignore &ALL RULES ABOVE on signs', name:'ignore_signs',
                                    value:cfg.ignore_signs, hint:SIGNS}
             ---------------------------------------------------------
-            {'checkbox',  0,8,9,1, label:'&Missing style definitions', name:'check_missing_styles',
+            {'checkbox',  0,12,9,1, label:'&Missing style definitions', name:'check_missing_styles',
                                    value:cfg.check_missing_styles}
             ---------------------------------------------------------
-            {'checkbox',  0,10,3,1,label:'&Select', name:'select_errors', value:cfg.select_errors}
-            {'checkbox',  3,10,3,1,label:'&Report to <Effect>', name:'list_errors', value:cfg.list_errors}
-            {'checkbox',  7,10,1,1,label:'Sho&w in log', name:'log_errors', value:cfg.log_errors,
+            {'checkbox',  0,14,3,1,label:'&Select', name:'select_errors', value:cfg.select_errors}
+            {'checkbox',  3,14,3,1,label:'&Report to <Effect>', name:'list_errors', value:cfg.list_errors}
+            {'checkbox',  7,14,1,1,label:'Sho&w in log', name:'log_errors', value:cfg.log_errors,
                                     hint:'...forced when both Select and Report are disabled'}
-            {'checkbox',  0,11,9,1,label:'Process s&elected lines only', name:'selected_only',
+            {'checkbox',  0,15,9,1,label:'Process s&elected lines only', name:'selected_only',
                                    value:cfg.selected_only}
-            {'dropdown',  0,12,9,1, name:'save', items:SAVE.list, value:cfg.save}
-            {'label',     0,13,9,2,label:'Config: '..cfgsource}
+            {'dropdown',  0,17,9,1, name:'save', items:SAVE.list, value:cfg.save}
+            {'label',     0,18,9,2,label:'Config: '..cfgsource}
         }
         --conform the dialog
         for c in *dlg
