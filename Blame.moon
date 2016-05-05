@@ -209,8 +209,9 @@ aegisub.register_macro script_name..'/'..script_name, script_description, (subs,
             if not cfg.list_errors or cfg.log_errors
                 aegisub.progress.set num/#lines*100
                 if msg != ''
-                    aegisub.log '%d: %s\t%s%s\n',
+                    aegisub.log '#%d, %s   %8s \t%s%s\n',
                         index - dialogfirst + 1,
+                        ms2str(.start_time),
                         msg,
                         textonly\sub(1,20),
                         (if #textonly > 20 then '...' else '')
@@ -236,6 +237,11 @@ aegisub.register_macro script_name..'/'..script_name, script_description, (subs,
         return false if s=='false'
         return tonumber s if s\match '^%-?[0-9.]+$'
         @
+    ms2str = (ms) ->
+        s = ('%02d:%02d:%02d')\format math.floor(ms/3600000),
+            math.floor(ms/60000 % 60),
+            math.floor(ms/1000 % 60)
+        s\gsub('^[0:]?[0:]?[0:]?[0:]?','') --gsub for ^[0:]{1,4} to strip 00:0 at the beginning
 
     cfgserialize = (t, sep) ->
         return '' unless t
