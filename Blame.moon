@@ -9,14 +9,14 @@ re = require 'aegisub.re'
 
 aegisub.register_macro script_name..'/'..script_name, script_description, (subs, sel) ->
     local *
-    local cfg, cfgsource, btns, dlg, userconfigpath
-    local playres, styles, cfglineindices, dialogfirst, overlap_end, check_max_lines_enabled
+    local cfg, cfg_source, btns, dlg, cfg_user_path
+    local playres, styles, cfg_line_indices, dialog_first, overlap_end, check_max_lines_enabled
 
     SAVE = {
         no:         "Apply and don't save settings"
         script:     "Apply and save settings in script"
         user:       "Apply and save settings in user config"
-        removeonly: "Only remove saved settings from script"
+        remove_only:"Only remove saved settings from script"
     }
 
     DEFAULTS = {
@@ -58,25 +58,25 @@ aegisub.register_macro script_name..'/'..script_name, script_description, (subs,
                 fs:  'fontsize'
                 fscx:'scale_x'
             }
-        alltags = table.concat [k for k,v in pairs .tag],'|'
-        allvalues = table.concat {
+        all_tags = table.concat [k for k,v in pairs .tag],'|'
+        all_values = table.concat {
                 [[(?<=fn)(?:[^\\}]*|\\|\s*$)|]]
                 [[(?<=r)(?:[^\\}]*|\\|\s*$)|]]
                 [[(?:[\s\\]+|-?[\d.]+|\s*$)]]
             },''
-        tagexpr = [[\\((?:]]..alltags..')(?:'..allvalues..'))'
-        .ovr_re = re.compile [[\{.*?]]..tagexpr..[[.*?\}]]
-        .tag_re = re.compile tagexpr
-        .tagparts_re = re.compile '('..alltags..')('..allvalues..')'
+        tag_expr = [[\\((?:]]..all_tags..')(?:'..all_values..'))'
+        .ovr_re = re.compile [[\{.*?]]..tag_expr..[[.*?\}]]
+        .tag_re = re.compile tag_expr
+        .tag_parts_re = re.compile '('..all_tags..')('..all_values..')'
 
     execute = ->
-        cfgread!
+        cfg_read!
         init!
 
         btn, cfg = aegisub.dialog.display(dlg, {btns.ok, btns.cancel}, btns)
         aegisub.cancel! if not btn or btn == btns.cancel
 
-        cfgwrite!
+        cfg_write!
 
         local lines
         if cfg.selected_only
@@ -96,7 +96,7 @@ aegisub.register_macro script_name..'/'..script_name, script_description, (subs,
 
         video_loaded = aegisub.frame_from_ms(0)
         check_max_lines_enabled = cfg.check_max_lines and playres.x > 0 and video_loaded
-        tosel = [v.i for num,v in ipairs lines when blameline num,v,lines]
+        tosel = [v.i for num,v in ipairs lines when blame_line num,v,lines]
 
         if cfg.log_errors or not (cfg.list_errors or cfg.select_errors)
             aegisub.log '\n%d lines blamed.\n',#tosel
@@ -110,14 +110,14 @@ aegisub.register_macro script_name..'/'..script_name, script_description, (subs,
 
         tosel if cfg.select_errors
 
-    blameline = (num, v, lines) ->
+    blame_line = (num, v, lines) ->
         msg = ''
         {i:index, :line} = v
         with line
             duration = (.end_time - .start_time)/1000
-            textonly = .text\gsub('{.-}','')\gsub('\\h',' ')
-            length = textonly\gsub('\\N','')\gsub("[ ,.-!?&():;/<>|%%$+=_'\"]",'')\len!
-            cps = if duration==0 then 0 else length/duration
+            text_only = .text\gsub('{.-}','')\gsub('\\h',' ')
+            text_length = text_only\gsub('\\N','')\gsub("[ ,.-!?&():;/<>|%%$+=_'\"]",'')\len!
+            cps = if duration==0 then 0 else text_length/duration
             style = styles[.style] or styles['Default'] or styles['*Default']
 
             if not should_ignore_signs line
@@ -134,52 +134,52 @@ aegisub.register_macro script_name..'/'..script_name, script_description, (subs,
                 if cfg.check_max_chars_per_sec and math.floor(cps) > cfg.max_chars_per_sec
                     msg ..= (' %dcps')\format cps
 
-                if cfg.check_max_chars and length > cfg.max_chars
-                    msg ..= (' +%dchars')\format (length - cfg.max_chars)
+                if cfg.check_max_chars and text_length > cfg.max_chars
+                    msg ..= (' +%dchars')\format (text_length - cfg.max_chars)
 
                 if check_max_lines_enabled and style
-                    numlines = 0
+                    num_lines = 0
                     if METRICS.q2_re\match .text
                         s = .text\gsub '\\N%s*{.-}%s*',''
-                        numlines = (#s - s\gsub('\\N','')\len!)/2 + 1
+                        num_lines = (#s - s\gsub('\\N','')\len!)/2 + 1
                     else
                         available_width = playres.x
                         available_width -= if .margin_r>0 then .margin_r else style.margin_r
                         available_width -= if .margin_l>0 then .margin_l else style.margin_l
-                        available_width *= playres.realx / playres.x
-                        ovrstyle = table.copy style
+                        available_width *= playres.real_x / playres.x
+                        ovr_style = table.copy style
 
                         for subline in .text\gsub('\\N','\n')\split_iter '\n'
-                            prevspanstart = 1
+                            prev_span_start = 1
                             subline = subline\trim!
 
                             -- iterate blocks with {...\tags that alter width metrics...}
                             for ovr, ovrstart, ovrend in METRICS.ovr_re\gfind subline
-                                numlines += calc_numlines subline\sub(prevspanstart, ovrstart-1),
-                                                          ovrstyle, available_width
-                                prevspanstart = ovrend + 1
+                                num_lines += calc_numlines subline\sub(prev_span_start, ovrstart-1),
+                                                          ovr_style, available_width
+                                prev_span_start = ovrend + 1
 
-                                tagpos = 1
+                                tag_pos = 1
                                 -- iterate width-altering \tags inside current {} block
                                 -- and put overrides into style used for text width calculation
                                 while true
-                                    tag = METRICS.tag_re\match ovr, tagpos
+                                    tag = METRICS.tag_re\match ovr, tag_pos
                                     break unless tag
-                                    tagpos = tag[2].last + 1
+                                    tag_pos = tag[2].last + 1
 
-                                    tagparts = METRICS.tagparts_re\match tag[2].str
-                                    tag.name, tag.value = tagparts[2].str, tagparts[3].str\trim!
+                                    tag_parts = METRICS.tag_parts_re\match tag[2].str
+                                    tag.name, tag.value = tag_parts[2].str, tag_parts[3].str\trim!
 
                                     if tag.name=='r'
-                                        ovrstyle = table.copy styles[tag.value] or style
+                                        ovr_style = table.copy styles[tag.value] or style
                                     else
-                                        set_style ovrstyle, tag, style
+                                        set_style ovr_style, tag, style
 
-                            numlines += calc_numlines subline\sub(prevspanstart),
-                                                      ovrstyle, available_width
-                            numlines = math.floor numlines + 0.9999999999
+                            num_lines += calc_numlines subline\sub(prev_span_start),
+                                                      ovr_style, available_width
+                            num_lines = math.floor num_lines + 0.9999999999
 
-                    msg ..= (' %dlines')\format numlines if numlines > cfg.max_lines
+                    msg ..= (' %dlines')\format num_lines if num_lines > cfg.max_lines
 
                 if cfg.check_overlaps
                     if .start_time < overlap_end
@@ -197,8 +197,8 @@ aegisub.register_macro script_name..'/'..script_name, script_description, (subs,
             if cfg.check_missing_styles
                 missing = styles[.style]==nil
                 for ovr in .text\gmatch '{(.*\\r.*)}'
-                    for ovrstyle in ovr\gmatch '\\r([^}\\]+)'
-                        missing = true unless styles[ovrstyle]
+                    for ovr_style in ovr\gmatch '\\r([^}\\]+)'
+                        missing = true unless styles[ovr_style]
                 msg ..= ' nostyle' if missing
 
             msg = msg\sub(2)
@@ -210,18 +210,18 @@ aegisub.register_macro script_name..'/'..script_name, script_description, (subs,
                 aegisub.progress.set num/#lines*100
                 if msg != ''
                     aegisub.log '#%d, %s   %8s \t%s%s\n',
-                        index - dialogfirst + 1,
+                        index - dialog_first + 1,
                         ms2str(.start_time),
                         msg,
-                        textonly\sub(1,20),
-                        (if #textonly > 20 then '...' else '')
+                        text_only\sub(1,20),
+                        (if #text_only > 20 then '...' else '')
         msg != ''
 
     should_ignore_signs = (line) -> cfg.ignore_signs and SIGNSre\match line.text
 
-    set_style = (style, tag, fallbackstyle) ->
+    set_style = (style, tag, fallback_style) ->
         field = METRICS.tag[tag.name]
-        style[field] = if tag.value!='' then tag.value else fallbackstyle[field]
+        style[field] = if tag.value!='' then tag.value else fallback_style[field]
 
     calc_numlines = (text, style, available_width) ->
         ok,width = pcall aegisub.text_extents, style, text\gsub('{.-}','')\gsub('\\h',' ')
@@ -229,7 +229,7 @@ aegisub.register_macro script_name..'/'..script_name, script_description, (subs,
         return width/available_width
 
     max = (a, b) -> if a > b then a else b
-    string.split_iter = (sepcharclass) => @\gmatch '([^'..sepcharclass..']+)'
+    string.split_iter = (separator_chars) => @\gmatch '([^'..separator_chars..']+)'
     string.trim = => @\gsub('^%s+','')\gsub('%s+$','')
     string.val = =>
         s = @\trim!\lower!
@@ -241,61 +241,61 @@ aegisub.register_macro script_name..'/'..script_name, script_description, (subs,
         s = ('%02d:%02d:%02d')\format math.floor(ms/3600000),
             math.floor(ms/60000 % 60),
             math.floor(ms/1000 % 60)
-        s\gsub('^[0:]?[0:]?[0:]?[0:]?','') --gsub for ^[0:]{1,4} to strip 00:0 at the beginning
+        s\gsub('^00?:?0?','') -- strip 00:0 at the beginning
 
-    cfgserialize = (t, sep) ->
-        return '' unless t
-        table.concat [k..':'..tostring(v) for k,v in pairs t], sep
+    cfg_serialize = (cfg, sep) ->
+        return '' unless cfg
+        table.concat [k..':'..tostring(v) for k,v in pairs cfg], sep
 
-    cfgdeserialize = (s) ->
+    cfg_deserialize = (str) ->
         kv2pair = (kv) -> unpack [i\val! for i in kv\split_iter ':']
-        {kv2pair kv for kv in s\split_iter ',\n\r'}
+        {kv2pair kv for kv in str\split_iter ',\n\r'}
 
-    cfgread = ->
+    cfg_read = ->
         --load user config if script hasn't one
-        userconfig = '?user/'..script_name..'.conf'
-        userconfigpath = aegisub.decode_path userconfig
+        cfg_user = '?user/'..script_name..'.conf'
+        cfg_user_path = aegisub.decode_path cfg_user
         if not cfg
-            f = io.open userconfigpath,'r'
+            f = io.open cfg_user_path,'r'
             if f
-                ok, _cfg = pcall(cfgdeserialize, f\read '*all')
+                ok, _cfg = pcall(cfg_deserialize, f\read '*all')
                 if ok and _cfg.save
-                    cfgsource = userconfig
+                    cfg_source = cfg_user
                     cfg = _cfg
                 f\close!
 
         if not cfg
-            cfgsource = 'defaults'
+            cfg_source = 'defaults'
             cfg = table.copy DEFAULTS
         else
-            cfgdef = false
+            cfg_default = false
             for k,v in pairs DEFAULTS
-                cfg[k], cfgdef = v, true if cfg[k]==nil
-            cfgsource ..= ' + defaults' if cfgdef
+                cfg[k], cfg_default = v, true if cfg[k]==nil
+            cfg_source ..= ' + defaults' if cfg_default
 
-    cfgwrite = ->
+    cfg_write = ->
         switch cfg.save
             when SAVE.script
-                subs.delete unpack cfglineindices if #cfglineindices > 0
-                subs.append {class:'info', section:'Script Info', key:script_name, value:cfgserialize(cfg,', ')}
+                subs.delete unpack cfg_line_indices if #cfg_line_indices > 0
+                subs.append {class:'info', section:'Script Info', key:script_name, value:cfg_serialize(cfg,', ')}
 
             when SAVE.user
-                f = io.open userconfigpath,'w'
+                f = io.open cfg_user_path,'w'
                 if not f
-                    aegisub.log 'Error writing '..userconfigpath
+                    aegisub.log 'Error writing '..cfg_user_path
                 else
-                    f\write cfgserialize cfg,'\n'
+                    f\write cfg_serialize cfg,'\n'
                     f\close!
 
-            when SAVE.removeonly
-                subs.delete unpack cfglineindices if #cfglineindices > 0
+            when SAVE.remove_only
+                subs.delete unpack cfg_line_indices if #cfg_line_indices > 0
                 aegisub.cancel!
 
     init = ->
-        playres = x:0, y:0, realx:0
+        playres = x:0, y:0, real_x:0
         styles = {}
-        cfglineindices = {}
-        dialogfirst = 0
+        cfg_line_indices = {}
+        dialog_first = 0
 
         for i,s in ipairs subs
             --assuming standard section order: info, styles, events
@@ -305,22 +305,22 @@ aegisub.register_macro script_name..'/'..script_name, script_description, (subs,
                     if kl=='playresx' or kl=='playresy'
                         playres[kl\sub #kl] = tonumber s.value if s.value\match '^%s*%d+%s*$'
                     elseif s.key==script_name
-                        table.insert cfglineindices, i
-                        ok, _cfg = pcall(cfgdeserialize, s.value)
-                        cfg, cfgsource = _cfg, 'script' if ok and _cfg.save
+                        table.insert cfg_line_indices, i
+                        ok, _cfg = pcall(cfg_deserialize, s.value)
+                        cfg, cfg_source = _cfg, 'script' if ok and _cfg.save
                 when 'style'
                     styles[s.name] = s
                 when 'dialogue'
-                    dialogfirst = i
+                    dialog_first = i
                     break
 
         if aegisub.video_size!
-            w,h,ar,artype = aegisub.video_size!
-            playres.realx = math.floor playres.y / h * w
+            w,h,ar,ar_type = aegisub.video_size!
+            playres.real_x = math.floor playres.y / h * w
 
         btns = ok:'&Go', cancel:'&Cancel'
         with SAVE
-            .list = {.no, .script, .user, .removeonly}
+            .list = {.no, .script, .user, .remove_only}
 
         --accels: g(go) c(cancel) vnixlhdofAmsrwe
         dlg = {
@@ -368,7 +368,7 @@ aegisub.register_macro script_name..'/'..script_name, script_description, (subs,
             {'checkbox',  0,15,9,1,label:'Process s&elected lines only', name:'selected_only',
                                    value:cfg.selected_only}
             {'dropdown',  0,17,9,1, name:'save', items:SAVE.list, value:cfg.save}
-            {'label',     0,18,9,2,label:'Config: '..cfgsource}
+            {'label',     0,18,9,2,label:'Config: '..cfg_source}
         }
         --conform the dialog
         for c in *dlg
